@@ -1,0 +1,5 @@
+OFFLINE_PACKS_UI_V18
+
+physics12_unit1_offline_v18.zip	78134 bytes	21 files	264513 uncompressed bytes	SHA256 948b92ab2041b6a5032fdc28661e387e2a913cace89121a3a62ff26c688ea51b
+chemistry12_unit1_offline_v18.zip	76928 bytes	21 files	263816 uncompressed bytes	SHA256 dcf837ce9ebf6580ded2ba5b9828daf87c2a8ab4486ec3297e327b5046f4a2fe
+student_samed_pwa_offline_v18.zip	124558 bytes	33 files	431681 uncompressed bytes	SHA256 285f2ed17d8602c0bc5d326dea989f57fc00e1291aeb939fe26a5cd2885ebc7d
