@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#245e65" />
+<title>الطالب الصامد | الفيزياء والكيمياء للصفوف 6–12</title>
+<style>
+:root{
+  --navy:#173f44;--navy2:#245e65;--ink:#173b3d;--muted:#71847f;
+  --line:#dce7f0;--paper:#ffffff;--soft:#f5f9fc;--sky:#2f74df;
+  --teal:#347d78;--teal2:#286a6d;--violet:#8460b8;--amber:#f5c65a;
+  --physics:#2f74df;--chemistry:#8154e9;--danger:#e65555;
+  --shadow:0 18px 50px rgba(8,44,76,.11);--shadow-sm:0 10px 28px rgba(8,44,76,.08);
+  --radius:24px;--radius-sm:17px;--max:1180px;
+}
+html[data-theme="dark"]{
+  --ink:#eef7ff;--muted:#9db2c7;--line:#213e58;--paper:#0e2438;--soft:#0a1b2b;
+  --navy:#061b2d;--navy2:#0a2e4d;--shadow:0 20px 55px rgba(0,0,0,.28);
+  --shadow-sm:0 10px 28px rgba(0,0,0,.22);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;line-height:1.8;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{text-decoration:none;color:inherit}button{font:inherit}.container{width:min(var(--max),calc(100% - 36px));margin-inline:auto}.section{padding:92px 0}.section.soft{background:var(--soft)}
+
+/* top navigation */
+.nav-shell{height:76px;position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(15px);border-bottom:1px solid color-mix(in srgb,var(--line) 78%,transparent)}
+.nav{height:100%;display:flex;align-items:center;gap:24px}.logo{display:flex;align-items:center;gap:11px;min-width:max-content}.logo-mark{width:45px;height:45px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,var(--navy2),var(--teal));box-shadow:0 8px 22px rgba(8,169,138,.25)}.logo-mark svg{width:29px;height:29px}.logo-text b{display:block;font-size:18px;line-height:1.25;font-weight:900;letter-spacing:-.3px}.logo-text small{display:block;color:var(--muted);font-size:10.5px;line-height:1.4;font-weight:700}.nav-links{display:flex;gap:23px;margin-inline:auto}.nav-links a,.nav-link-button{font-size:13.5px;color:var(--muted);font-weight:800;position:relative}.nav-link-button{border:0;background:transparent;padding:0;cursor:pointer;font-family:inherit}.nav-link-button:hover{color:var(--ink)}.nav-links a:after{content:"";position:absolute;right:0;left:100%;bottom:-7px;height:2px;background:var(--teal);transition:.2s}.nav-links a:hover{color:var(--ink)}.nav-links a:hover:after{left:0}.nav-actions{display:flex;align-items:center;gap:9px}.round-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;display:grid;place-items:center}.menu-btn{display:none}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:13px;padding:11px 19px;font-size:13.5px;font-weight:900;cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s}.btn:hover{transform:translateY(-2px)}.btn.primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:white;box-shadow:0 9px 22px rgba(8,169,138,.24)}.btn.dark{background:var(--navy);color:#fff;box-shadow:0 9px 22px rgba(8,44,76,.22)}.btn.outline{background:transparent;border:1px solid var(--line);color:var(--ink)}.btn.large{padding:14px 25px;border-radius:15px;font-size:15px}
+
+/* hero */
+.hero{position:relative;min-height:690px;display:flex;align-items:center;padding:72px 0 66px;isolation:isolate;background:linear-gradient(135deg,#f4fbff 0%,#eefbf7 51%,#f8f5ff 100%);overflow:hidden}.hero:before{content:"";position:absolute;inset:0;z-index:-2;background-image:radial-gradient(circle at 1px 1px,rgba(8,44,76,.11) 1px,transparent 0);background-size:28px 28px;mask-image:linear-gradient(90deg,#000,transparent 82%)}.hero:after{content:"";position:absolute;width:520px;height:520px;border-radius:50%;inset:auto -170px -240px auto;z-index:-1;background:radial-gradient(circle,rgba(8,169,138,.20),rgba(8,169,138,0) 68%)}html[data-theme="dark"] .hero{background:linear-gradient(135deg,#071d30,#0a2939 54%,#161d3d)}.hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:65px;align-items:center}.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:999px;background:#fff;border:1px solid #cfe5ef;color:var(--navy2);font-size:12px;font-weight:900;box-shadow:var(--shadow-sm)}html[data-theme="dark"] .eyebrow{background:var(--paper);border-color:var(--line);color:#7edfc9}.live-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 5px rgba(8,169,138,.13)}.hero h1{margin:19px 0 16px;font-size:clamp(37px,5vw,61px);line-height:1.34;letter-spacing:-1.9px;font-weight:950}.hero h1 span{color:var(--teal);position:relative;white-space:nowrap}.hero h1 span:after{content:"";position:absolute;right:1%;bottom:1px;width:92%;height:9px;background:var(--amber);opacity:.43;border-radius:100%;z-index:-1;transform:rotate(-1deg)}.hero-copy>p{font-size:17px;color:var(--muted);max-width:590px;margin:0 0 26px}.hero-actions{display:flex;gap:11px;flex-wrap:wrap}.mini-trust{display:flex;gap:16px;flex-wrap:wrap;margin-top:23px;color:var(--muted);font-size:12.5px;font-weight:750}.mini-trust span{display:flex;align-items:center;gap:5px}.check{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;background:rgba(8,169,138,.13);color:var(--teal);font-size:11px;font-weight:900}
+
+/* hero product visual */
+.visual{position:relative;min-height:505px;display:grid;place-items:center}.orbit{position:absolute;width:470px;height:470px;border-radius:50%;border:1px dashed rgba(47,116,223,.23);animation:spin 45s linear infinite}.orbit.o2{width:370px;height:370px;border-color:rgba(129,84,233,.22);animation-direction:reverse;animation-duration:33s}.orb{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--physics);box-shadow:0 0 0 8px rgba(47,116,223,.1)}.orbit .orb{top:35px;right:83px}.orbit.o2 .orb{top:auto;right:auto;bottom:22px;left:95px;background:var(--chemistry);box-shadow:0 0 0 8px rgba(129,84,233,.1)}@keyframes spin{to{transform:rotate(360deg)}}.app-card{position:relative;z-index:3;width:min(435px,92%);background:var(--paper);border:1px solid var(--line);border-radius:28px;box-shadow:0 34px 80px rgba(8,44,76,.2);overflow:hidden;transform:rotate(-1deg)}.app-top{display:flex;align-items:center;gap:9px;padding:15px 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--soft) 74%,var(--paper))}.app-logo{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--navy2),var(--teal));display:grid;place-items:center;color:#fff;font-size:16px}.app-top b{font-size:12.5px;line-height:1.3}.app-top small{font-size:9px;color:var(--muted);display:block}.app-body{padding:20px}.app-label{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:10.5px;font-weight:800}.progress{height:7px;border-radius:100px;background:var(--soft);margin:7px 0 18px;overflow:hidden}.progress i{display:block;width:62%;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--teal),#51dbc0)}.exercise{border:1px solid var(--line);background:var(--soft);border-radius:17px;padding:16px}.exercise-title{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--physics);font-weight:900}.ex-number{width:28px;height:28px;border-radius:9px;background:rgba(47,116,223,.11);display:grid;place-items:center}.exercise p{font-size:11.5px;color:var(--muted);margin:11px 0}.formula{direction:ltr;text-align:center;font-family:Georgia,"Times New Roman",serif;font-size:24px;font-weight:700;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px}.slots{display:flex;direction:ltr;gap:7px;margin-top:11px}.slot{height:31px;flex:1;border:1.5px dashed #9eb5c8;border-radius:9px;background:var(--paper)}.slot.filled{display:grid;place-items:center;border-style:solid;border-color:var(--teal);color:var(--teal);font-size:11px;font-weight:900;background:rgba(8,169,138,.07)}.app-next{width:100%;border:0;border-radius:12px;background:var(--teal);color:#fff;font-weight:900;padding:10px;margin-top:13px}.float-card{position:absolute;z-index:4;background:var(--paper);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow-sm);padding:10px 13px;font-size:11px;font-weight:900;display:flex;align-items:center;gap:8px}.float-card span{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px}.fc1{top:28px;right:-8px;animation:float 4.3s ease-in-out infinite}.fc1 span{background:rgba(47,116,223,.12)}.fc2{bottom:42px;left:-7px;animation:float 5.2s ease-in-out infinite reverse}.fc2 span{background:rgba(129,84,233,.12)}.fc3{bottom:3px;right:44px;animation:float 4.8s ease-in-out infinite}.fc3 span{background:rgba(246,187,66,.16)}@keyframes float{50%{transform:translateY(-9px)}}
+
+/* stats */
+.stats-wrap{position:relative;margin-top:-34px;z-index:8}.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:12px}.stat{padding:16px;text-align:center;border-left:1px solid var(--line)}.stat:last-child{border-left:0}.stat b{display:block;font-size:24px;line-height:1.3;color:var(--navy2);font-weight:950}html[data-theme="dark"] .stat b{color:#79ddc8}.stat small{font-size:11.5px;color:var(--muted);font-weight:750}
+
+/* shared section */
+.section-head{max-width:710px;margin:0 auto 45px;text-align:center}.kicker{color:var(--teal);font-size:12.5px;font-weight:950;letter-spacing:.4px}.section-head h2{font-size:clamp(27px,3.3vw,42px);line-height:1.45;letter-spacing:-.8px;margin:7px 0 11px;font-weight:950}.section-head p{margin:0;color:var(--muted);font-size:15px}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}.feature{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow-sm);transition:.22s}.feature:hover{transform:translateY(-6px);box-shadow:var(--shadow)}.feature-icon{width:53px;height:53px;border-radius:16px;display:grid;place-items:center;font-size:25px;margin-bottom:16px}.feature:nth-child(1) .feature-icon{background:rgba(47,116,223,.11)}.feature:nth-child(2) .feature-icon{background:rgba(8,169,138,.11)}.feature:nth-child(3) .feature-icon{background:rgba(129,84,233,.11)}.feature h3{font-size:18px;margin:0 0 8px;font-weight:900}.feature p{font-size:13px;color:var(--muted);margin:0}
+
+/* learning paths */
+.path-shell{display:grid;grid-template-columns:290px 1fr;gap:20px;align-items:start}.grade-panel{background:var(--navy);border-radius:var(--radius);padding:22px;color:#fff;position:sticky;top:96px}.grade-panel h3{margin:0 0 3px;font-size:19px}.grade-panel>p{font-size:11.5px;color:#bed2e3;margin:0 0 17px}.grade-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grade-btn{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#d7e7f2;border-radius:12px;padding:10px 6px;cursor:pointer;font-weight:900;font-size:12px}.grade-btn.active{background:var(--teal);color:#fff;border-color:transparent;box-shadow:0 7px 17px rgba(8,169,138,.25)}.path-main{min-width:0}.path-top{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:15px}.path-top h3{font-size:24px;margin:0;line-height:1.4}.path-top small{color:var(--muted)}.subject-tabs{display:flex;gap:7px;background:var(--soft);border:1px solid var(--line);padding:5px;border-radius:13px}.subject-tab{border:0;border-radius:9px;background:transparent;color:var(--muted);padding:7px 13px;font-weight:900;cursor:pointer;font-size:12px}.subject-tab.active[data-sub="physics"]{background:var(--physics);color:white}.subject-tab.active[data-sub="chemistry"]{background:var(--chemistry);color:white}.course-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.course-card{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:20px;position:relative;overflow:hidden;min-height:176px;transition:.2s}.course-card:before{content:"";position:absolute;right:0;top:0;bottom:0;width:4px;background:var(--physics)}.course-card.chem:before{background:var(--chemistry)}.course-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-sm)}.course-hit{position:absolute;inset:0;z-index:8;border-radius:inherit;cursor:pointer}.course-hit:focus{outline:3px solid var(--teal);outline-offset:3px}.course-label{display:inline-block;font-size:10px;font-weight:900;padding:4px 9px;border-radius:999px;color:var(--physics);background:rgba(47,116,223,.1)}.course-card.chem .course-label{color:var(--chemistry);background:rgba(129,84,233,.1)}.course-card h4{margin:13px 0 5px;font-size:17px;font-weight:900}.course-card p{font-size:12px;color:var(--muted);margin:0 0 13px}.course-meta{display:flex;gap:13px;color:var(--muted);font-size:10.5px;font-weight:800}.soon{display:inline-flex;align-items:center;gap:5px;color:#9a6a00;background:#fff6d9;border:1px solid #f6df97;border-radius:99px;padding:3px 8px;font-size:9.5px;font-weight:900}.available{color:#08755f;background:#e6faf4;border-color:#9ce7d2}
+
+/* how it works */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;counter-reset:step}.step{text-align:center;position:relative}.step:not(:last-child):after{content:"";position:absolute;top:35px;left:-23%;width:46%;border-top:2px dashed #bed0df}.step-num{width:70px;height:70px;border-radius:22px;display:grid;place-items:center;margin:0 auto 16px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow-sm);font-size:25px}.step b{display:block;font-size:17px;font-weight:900;margin-bottom:6px}.step p{margin:0 auto;color:var(--muted);font-size:12.5px;max-width:260px}
+
+/* interactive preview */
+.practice{display:grid;grid-template-columns:.9fr 1.1fr;gap:50px;align-items:center}.practice-copy h2{font-size:clamp(28px,3.4vw,43px);line-height:1.48;margin:8px 0 13px;font-weight:950}.practice-copy p{color:var(--muted);font-size:14px}.list{display:grid;gap:11px;margin:22px 0}.list-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:800}.list-item i{flex:0 0 23px;width:23px;height:23px;border-radius:8px;background:rgba(8,169,138,.12);color:var(--teal);display:grid;place-items:center;font-style:normal}.board{background:var(--navy);border-radius:30px;padding:26px;box-shadow:var(--shadow);position:relative;overflow:hidden;color:#fff}.board:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 13% 7%,rgba(8,169,138,.35),transparent 35%),radial-gradient(circle at 100% 100%,rgba(129,84,233,.33),transparent 38%)}.board-in{position:relative;background:#fff;color:#0c2036;border-radius:20px;padding:21px}.board-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:900}.board-head span:last-child{color:#0a8d72}.law{direction:ltr;text-align:center;font-family:Georgia,"Times New Roman",serif;font-size:29px;padding:22px 10px 15px}.micro-steps{display:grid;gap:8px}.micro{display:flex;align-items:center;gap:9px;border:1px solid #dce7f0;border-radius:11px;padding:8px 10px;font-size:10.5px;color:#60758a}.micro b{width:23px;height:23px;border-radius:7px;background:#eaf2ff;color:#2f74df;display:grid;place-items:center}.micro.answer{border-color:#a6e5d5;background:#effbf8;color:#08755f}.micro.answer b{background:#d9f7ee;color:#08755f}.board-note{text-align:center;font-size:10px;margin-top:14px;color:#bed2e3}
+
+/* offline banner */
+.offline{background:linear-gradient(125deg,var(--navy),#0d5274 58%,#0c6b62);color:#fff;border-radius:32px;padding:42px;display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:28px;position:relative;overflow:hidden}.offline:after{content:"";position:absolute;width:330px;height:330px;border:60px solid rgba(255,255,255,.045);border-radius:50%;left:-130px;top:-130px}.offline h2{font-size:30px;line-height:1.5;margin:0 0 9px}.offline p{color:#c4dbe7;margin:0;font-size:13.5px}.offline-tags{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative}.offline-tag{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:15px;padding:13px;font-size:11.5px;font-weight:850}.offline-tag span{font-size:21px;display:block;margin-bottom:3px}
+
+/* faq + CTA */
+.faq{max-width:850px;margin:auto;display:grid;gap:10px}.faq details{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:4px 18px}.faq summary{padding:13px 0;cursor:pointer;font-size:13.5px;font-weight:900;list-style:none}.faq summary::-webkit-details-marker{display:none}.faq summary:before{content:"＋";float:left;color:var(--teal);font-size:18px}.faq details[open] summary:before{content:"−"}.faq p{margin:0 0 16px;color:var(--muted);font-size:12.5px}.final-cta{text-align:center;padding:77px 20px;background:linear-gradient(135deg,#ecfbf6,#edf5ff 52%,#f6f1ff);border-top:1px solid var(--line)}html[data-theme="dark"] .final-cta{background:linear-gradient(135deg,#0b2b31,#10243a 52%,#211c40)}.final-cta h2{font-size:clamp(29px,4vw,44px);line-height:1.48;margin:0 0 9px}.final-cta p{color:var(--muted);margin:0 0 23px}
+
+footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:40px}.footer-brand p{font-size:12px;color:#93abc0;max-width:420px}.footer-title{font-size:12px;color:#fff;font-weight:950;margin-bottom:12px}.footer-links{display:grid;gap:7px;font-size:11.5px;color:#a8bdcd}.footer-action{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;padding:9px 12px;border-radius:10px;text-align:right;cursor:pointer;font-weight:900;width:max-content}.footer-mail{direction:ltr;unicode-bidi:isolate;color:#f2cf70;font-size:10px}.footer-action:hover{color:#f5c65a}.footer-bottom{border-top:1px solid rgba(255,255,255,.1);margin-top:31px;padding-top:18px;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;font-size:10.5px;color:#7892a7}
+
+.toast{position:fixed;right:50%;transform:translate(50%,15px);bottom:23px;z-index:100;background:var(--navy);color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:10px 17px;box-shadow:var(--shadow);font-size:12.5px;font-weight:800;opacity:0;pointer-events:none;transition:.25s}.toast.show{opacity:1;transform:translate(50%,0)}
+
+@media(max-width:980px){.nav-links{display:none}.menu-btn{display:grid}.nav .btn.primary{display:none}.hero{min-height:auto}.hero-grid{grid-template-columns:1fr;gap:28px}.hero-copy{text-align:center}.hero-copy>p{margin-inline:auto}.hero-actions,.mini-trust{justify-content:center}.visual{min-height:490px}.path-shell,.practice,.offline{grid-template-columns:1fr}.grade-panel{position:static}.grade-list{grid-template-columns:repeat(7,1fr)}.offline-tags{z-index:2}.footer-grid{grid-template-columns:1fr 1fr}.footer-brand{grid-column:1/-1}}
+@media(max-width:690px){.container{width:min(100% - 24px,var(--max))}.section{padding:64px 0}.nav-shell{height:67px}.logo-mark{width:39px;height:39px}.logo-text b{font-size:16px}.logo-text small{display:none}.nav-actions .round-btn:not(.menu-btn){display:none}.hero{padding:52px 0 48px}.hero h1{font-size:38px;letter-spacing:-1px}.hero-copy>p{font-size:14px}.hero-actions .btn{width:100%}.visual{min-height:390px}.orbit{width:350px;height:350px}.orbit.o2{width:285px;height:285px}.app-card{width:92%}.fc1{top:2px;right:0}.fc2{bottom:2px;left:0}.fc3{display:none}.stats{grid-template-columns:1fr 1fr}.stat{border-bottom:1px solid var(--line)}.feature-grid,.course-grid,.steps{grid-template-columns:1fr}.feature{padding:21px}.grade-list{grid-template-columns:repeat(4,1fr)}.path-top{display:grid;align-items:start}.subject-tabs{width:max-content}.step:not(:last-child):after{display:none}.practice{gap:25px}.offline{padding:28px 20px;border-radius:24px}.offline-tags{grid-template-columns:1fr 1fr}.footer-grid{grid-template-columns:1fr}.footer-brand{grid-column:auto}}
+@media(max-width:410px){.hero h1{font-size:33px}.visual{min-height:360px}.app-body{padding:14px}.float-card{display:none}.offline-tags{grid-template-columns:1fr}.mini-trust{gap:9px}.stat b{font-size:20px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+
+<style id="streamlit-smooth-mode">
+  html, body { height:auto !important; min-height:0 !important; overflow:visible !important; overflow-x:clip !important; }
+  .nav-shell { position:relative !important; top:auto !important; }
+</style>
+<style id="landing-ui-v16">
+.all-subjects{background:#fff7df!important;border:1px solid #ecd58e!important;color:#795d14!important;border-radius:999px;padding:5px 9px}.nav-links.open{display:flex}.how-modal[hidden]{display:none}.how-modal{position:absolute;inset-inline:0;z-index:500;display:grid;place-items:center;padding:14px}.how-backdrop{position:absolute;inset:0;background:rgba(6,27,45,.62);backdrop-filter:blur(5px)}.how-dialog{position:relative;width:min(94%,780px);max-height:calc(100% - 24px);overflow:auto;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:25px;box-shadow:0 30px 80px rgba(6,27,45,.3);padding:25px}.how-close{position:absolute;left:16px;top:16px;width:38px;height:38px;border:1px solid var(--line);border-radius:11px;background:var(--soft);color:var(--ink);cursor:pointer}.how-dialog h2{font-size:28px;margin:5px 0 7px}.how-lead{color:var(--muted);font-size:13px;margin:0 0 18px}.how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.how-step{border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:15px}.how-step>span{width:42px;height:42px;border-radius:12px;background:var(--paper);display:grid;place-items:center;font-size:20px;margin-bottom:10px}.how-step b{display:block;font-size:13px;margin-bottom:5px}.how-step p{font-size:10.5px;line-height:1.75;color:var(--muted);margin:0}.how-flow{margin-top:13px;background:#eaf7f2;border:1px solid #c9e5da;border-radius:14px;padding:11px 13px;font-size:11px;color:#37665b;line-height:1.8}.how-actions{display:flex;gap:8px;margin-top:15px}.how-actions .btn{flex:1}.round-help{font-weight:950;font-size:17px}.nav-links a:focus-visible,.btn:focus-visible,.round-btn:focus-visible{outline:3px solid rgba(246,187,66,.55);outline-offset:3px}
+@media(max-width:980px){.nav{position:relative}.nav-links.open .nav-link-button{width:100%;text-align:right;padding:10px 11px;border-radius:9px}.nav-links.open{position:absolute;top:66px;right:0;left:0;z-index:80;flex-direction:column;gap:0;background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:8px;box-shadow:var(--shadow)}.nav-links.open a{padding:10px 11px;border-radius:9px}.nav-links.open a:hover{background:var(--soft)}.how-steps{grid-template-columns:1fr}.how-dialog{padding:21px 16px}.how-dialog h2{font-size:23px}.how-actions{display:grid}}
+</style>
+</head>
+<body>
+<header class="nav-shell">
+  <nav class="nav container" aria-label="التنقل الرئيسي">
+    <a class="logo" href="#home" aria-label="الطالب الصامد — الرئيسية">
+      <span class="logo-mark">
+        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <path d="M16 2.7 5.5 7.1v8.3c0 6.4 4.4 11.9 10.5 13.8 6.1-1.9 10.5-7.4 10.5-13.8V7.1L16 2.7Z" stroke="#fff" stroke-width="2"/>
+          <path d="M10.3 13.1c2.3-.2 4.1.5 5.7 2 1.6-1.5 3.4-2.2 5.7-2v7.3c-2.4-.2-4.3.5-5.7 2.1-1.4-1.6-3.3-2.3-5.7-2.1v-7.3Z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="logo-text"><b>الطالب الصامد</b><small>الفيزياء والكيمياء · الصفوف 6–12</small></span>
+    </a>
+    <div class="nav-links">
+      <a href="#home">الرئيسية</a><a href="#why">لماذا المنصة؟</a><a href="#paths">المسارات</a><a href="#method">طريقة التعلّم</a><a href="#faq">الأسئلة الشائعة</a><button id="contactHeaderBtn" class="nav-link-button" type="button">✉️ تواصل معنا</button>
+    </div>
+    <div class="nav-actions">
+      <button class="round-btn round-help" id="howBtn" aria-label="كيف تعمل المنصة؟">?</button>
+      <button class="round-btn" id="theme" aria-label="تبديل المظهر">◐</button>
+      <button class="round-btn menu-btn" id="menu" aria-label="القائمة">☰</button>
+      <button class="btn primary" id="accountBtn" onclick="return triggerStart(event)">تسجيل الطالب</button>
+    </div>
+  </nav>
+</header>
+
+<main>
+<section class="hero" id="home">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow"><i class="live-dot"></i> دعم تعليمي مجاني لطلبة غزّة</span>
+      <h1>تعلّم العلوم بثقة،<br><span>خطوةً خطوة.</span></h1>
+      <p>منصة <b>الطالب الصامد</b> ترافقك من الصف السادس إلى الثاني عشر في الفيزياء والكيمياء، بشرح بسيط وتمارين تفاعلية تجعلك تفهم القانون قبل أن تحفظه.</p>
+      <div class="hero-actions">
+        <a class="btn primary large" href="#" onclick="return triggerStart(event)">ابدأ التعلّم مجانًا <b>←</b></a>
+        <button class="btn outline large" id="howWorksBtn" type="button">كيف تعمل المنصة؟</button>
+      </div>
+      <div class="mini-trust">
+        <span><i class="check">✓</i> حساب محلي خفيف</span>
+        <span><i class="check">✓</i> مناسبة للهاتف</span>
+        <span><i class="check">✓</i> تحفظ تقدّمك</span>
+        <span><i class="check">✓</i> خفيفة على الإنترنت</span>
+        <span class="all-subjects"><i class="check">＋</i> جميع المواد ستتوفر قريبًا</span>
+      </div>
+    </div>
+
+    <div class="visual" aria-label="معاينة تمرين تفاعلي">
+      <div class="orbit"><i class="orb"></i></div><div class="orbit o2"><i class="orb"></i></div>
+      <div class="app-card">
+        <div class="app-top"><span class="app-logo">🛡️</span><span><b>الطالب الصامد</b><small>تمرين تفاعلي · الفيزياء</small></span></div>
+        <div class="app-body">
+          <div class="app-label"><span>الزخم والدفع</span><span>الخطوة 3 من 5</span></div>
+          <div class="progress"><i></i></div>
+          <div class="exercise">
+            <div class="exercise-title"><span class="ex-number">٣</span> عوّض القيم بنفسك</div>
+            <p>نعوّض كتلة الجسم وسرعته في قانون الزخم:</p>
+            <div class="formula">p = m · v</div>
+            <div class="slots"><span class="slot filled">2 kg</span><span class="slot filled">5 m/s</span><span class="slot"></span></div>
+            <button class="app-next" onclick="notify('إجابة صحيحة — أحسنت المتابعة!')">تحقّق من الإجابة</button>
+          </div>
+        </div>
+      </div>
+      <div class="float-card fc1"><span>⚛️</span> فيزياء مبسّطة</div>
+      <div class="float-card fc2"><span>🧪</span> كيمياء بالتجربة</div>
+      <div class="float-card fc3"><span>🛡️</span> واصل حتى تفهم</div>
+    </div>
+  </div>
+</section>
+
+<div class="stats-wrap"><div class="container stats">
+  <div class="stat"><b>7</b><small>صفوف دراسية · 6 إلى 12</small></div>
+  <div class="stat"><b>2</b><small>الفيزياء والكيمياء</small></div>
+  <div class="stat"><b>خطوة بخطوة</b><small>فهم قبل حفظ القانون</small></div>
+  <div class="stat"><b>مجّانًا</b><small>دعم يصل إلى كل طالب</small></div>
+</div></div>
+
+<section class="section" id="why">
+  <div class="container">
+    <header class="section-head"><span class="kicker">لماذا الطالب الصامد؟</span><h2>منصة لا تعرض الحلّ فقط؛<br>بل تعلّمك كيف تصل إليه.</h2><p>استوحينا تنظيم الصفحة من منصات الدورات، ثم بنينا تجربة مختلفة حول المشاركة الفعلية للطالب في كل خطوة.</p></header>
+    <div class="feature-grid">
+      <article class="feature"><span class="feature-icon">🧠</span><h3>تبسيط المفاهيم</h3><p>لغة واضحة، أمثلة قريبة من الحياة، ورسوم تساعدك على رؤية الظاهرة قبل استعمال القانون.</p></article>
+      <article class="feature"><span class="feature-icon">🧭</span><h3>منهجية منظّمة</h3><p>تتدرّج من المعطيات إلى القانون ثم التعويض فالنتيجة؛ ولا تنتقل إلا بعد فهم الخطوة الحالية.</p></article>
+      <article class="feature"><span class="feature-icon">📈</span><h3>تقدّم حقيقي</h3><p>محاولات، تلميحات، نقاط وأوسمة تشجّعك على المثابرة من دون تحويل التعلّم إلى سباق.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section soft" id="paths">
+  <div class="container">
+    <header class="section-head"><span class="kicker">مسارات التعلّم</span><h2>اختر صفّك ومادتك، وابدأ من مستواك.</h2><p>محتوى منظّم من الأساسيات في الصف السادس إلى مسائل المرحلة الثانوية.</p></header>
+    <div class="path-shell">
+      <aside class="grade-panel"><h3>اختر الصف</h3><p>يتغيّر المسار المقترح حسب مستواك</p><div class="grade-list" id="grades"></div></aside>
+      <div class="path-main">
+        <div class="path-top"><div><small>المسار المختار</small><h3 id="gradeTitle">الصف الثاني عشر</h3></div><div class="subject-tabs"><button class="subject-tab active" data-sub="physics">⚛️ الفيزياء</button><button class="subject-tab" data-sub="chemistry">🧪 الكيمياء</button></div></div>
+        <div class="course-grid" id="courses"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="method">
+  <div class="container">
+    <header class="section-head"><span class="kicker">طريقة التعلّم</span><h2>تأسيس، توضيح، ثم تطبيق تفاعلي.</h2><p>نسترجع الأساس أولًا، ثم نشرح المفهوم بأمثلة، وبعدها نطبّق بالخطوات.</p></header>
+    <div class="steps">
+      <article class="step"><span class="step-num">🧱</span><b>درس تأسيسي</b><p>لمراجعة أهم مفاهيم السنوات الماضية واسترجاع القاعدة التي يحتاجها الطالب.</p></article>
+      <article class="step"><span class="step-num">💡</span><b>درس توضيحي</b><p>شرح مبسّط للمفهوم مع أمثلة تفصيلية وحلّ متدرّج دون اختصار.</p></article>
+      <article class="step"><span class="step-num">🧩</span><b>تمارين تفاعلية بالخطوات</b><p>يشارك الطالب في التعويض والحساب، ويحصل على تلميح عند الحاجة.</p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section soft">
+  <div class="container practice">
+    <div class="practice-copy"><span class="kicker">التعلّم بالمشاركة</span><h2>كل معادلة تتحوّل إلى طريق واضح.</h2><p>في التمرين التقليدي ترى الحل كاملًا. هنا تبني الحلّ سطرًا سطرًا، وتبقى المعادلة أمامك بينما تعوّض القيم.</p><div class="list"><div class="list-item"><i>✓</i> كتابة القيم في موضعها داخل المعادلة</div><div class="list-item"><i>✓</i> تلميحات تدريجية بدل كشف الإجابة</div><div class="list-item"><i>✓</i> ورقة قوانين وآلة حاسبة داخل التمرين</div><div class="list-item"><i>✓</i> عرض واضح للرموز والوحدات</div></div><a href="#" onclick="return triggerMomentum(event)" class="btn dark">جرّب أول تمرين ←</a></div>
+    <div class="board"><div class="board-in"><div class="board-head"><span>🧭 استنتج العلاقة بنفسك</span><span>الخطوة ٢</span></div><div class="law">K = p² / 2m</div><div class="micro-steps"><div class="micro"><b>١</b> اكتب قانون الطاقة الحركية بدلالة السرعة</div><div class="micro"><b>٢</b> عوّض السرعة بالعلاقة v = p / m</div><div class="micro answer"><b>✓</b> بسّط الحدود لتحصل على العلاقة المطلوبة</div></div></div><div class="board-note">لا تُعرض الخطوة التالية حتى تشارك في الحالية</div></div>
+  </div>
+</section>
+
+<section class="section"><div class="container offline">
+  <div><span class="kicker" style="color:#72e4ca">مصمّمة لظروفك</span><h2>تعليم يصل إليك، حتى عندما تنقطع الشبكة.</h2><p>سجّل مستواك، شاهد برنامجك السنوي، وادرس أونلاين أو نزّل حزمة تناسب سطح المكتب أو اللوحات أو الهاتف.</p></div>
+  <div class="offline-tags"><div class="offline-tag"><span>📶</span>تعمل بعد أول تحميل</div><div class="offline-tag"><span>💾</span>حفظ تلقائي للتقدّم</div><div class="offline-tag"><span>🔋</span>وضع ليلي للبطارية</div><div class="offline-tag"><span>🔒</span>لا بيانات شخصية</div></div>
+</div></section>
+
+<section class="section soft" id="faq"><div class="container">
+  <header class="section-head"><span class="kicker">الأسئلة الشائعة</span><h2>كل ما تحتاج معرفته قبل أن تبدأ.</h2></header>
+  <div class="faq">
+    <details open><summary>لمن صُمّمت منصة الطالب الصامد؟</summary><p>لطلاب الصفوف من السادس إلى الثاني عشر في غزّة، مع محتوى متدرّج في الفيزياء والكيمياء.</p></details>
+    <details><summary>هل المنصة مجانية؟</summary><p>نعم. الهدف هو توفير دعم تعليمي واضح ومتاح، دون اشتراك أو تسجيل إلزامي.</p></details>
+    <details><summary>هل تظهر الإجابات تلقائيًا؟</summary><p>لا. يشارك الطالب في خطوات الاشتقاق والتعويض، ويحصل أولًا على تلميحات متدرّجة.</p></details>
+    <details><summary>هل تعمل على الهاتف وعند ضعف الإنترنت؟</summary><p>نعم. التصميم متجاوب وخفيف، ويحفظ التقدّم محليًا لتقليل فقدان العمل عند الانقطاع.</p></details>
+  </div>
+</div></section>
+
+<section class="final-cta"><div class="container"><h2>أنت قادر على الفهم.<br>ابدأ بخطوة، ثم واصل.</h2><p>اختر صفّك ومادتك وابدأ أول تمرين تفاعلي الآن.</p><a href="#" onclick="return triggerMomentum(event)" class="btn primary large">ابدأ التعلّم مجانًا ←</a></div></section>
+</main>
+
+<footer><div class="container"><div class="footer-grid">
+  <div class="footer-brand"><a class="logo" href="#home"><span class="logo-mark"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2.7 5.5 7.1v8.3c0 6.4 4.4 11.9 10.5 13.8 6.1-1.9 10.5-7.4 10.5-13.8V7.1L16 2.7Z" stroke="#fff" stroke-width="2"/><path d="M10.3 13.1c2.3-.2 4.1.5 5.7 2 1.6-1.5 3.4-2.2 5.7-2v7.3c-2.4-.2-4.3.5-5.7 2.1-1.4-1.6-3.3-2.3-5.7-2.1v-7.3Z" stroke="#fff" stroke-width="1.7"/></svg></span><span class="logo-text"><b>الطالب الصامد</b><small style="color:#91a9bc">لأن الفهم حقّ، مهما كانت الظروف</small></span></a><p>منصة دعم تعليمي عربية تبدأ بالفيزياء والكيمياء، وستشمل جميع المواد قريبًا؛ ترافق طالب غزّة من فهم الفكرة إلى إتقان الحل.</p></div>
+  <div><div class="footer-title">استكشف</div><div class="footer-links"><a href="#why">لماذا المنصة؟</a><a href="#paths">المسارات</a><a href="#method">طريقة التعلّم</a><button id="contactBtn" class="footer-action" type="button">✉️ تواصل معنا</button><span class="footer-mail">techn47@gmail.com</span></div></div>
+  <div><div class="footer-title">المراحل</div><div class="footer-links"><span>الصفوف 6–9</span><span>الصفوف 10–12</span><span>الفيزياء والكيمياء حاليًا</span><span>جميع المواد قريبًا</span></div></div>
+</div><div class="footer-bottom"><span>© 2026 الطالب الصامد · مشروع دعم تعليمي مجاني</span><span>صُمّمت بعناية لتكون خفيفة، واضحة، وآمنة.</span></div></div></footer>
+<div id="howModal" class="how-modal" hidden aria-hidden="true"><div class="how-backdrop" data-close-how></div><section class="how-dialog" role="dialog" aria-modal="true" aria-labelledby="howTitle"><button class="how-close" type="button" data-close-how aria-label="إغلاق">×</button><span class="kicker">كيف تبدأ؟</span><h2 id="howTitle">ثلاث خطوات واضحة للتعلّم</h2><p class="how-lead">من إنشاء الحساب إلى الدراسة أونلاين أو أوفلاين، ثم متابعة المسار المناسب لمستواك.</p><div class="how-steps"><article class="how-step"><span>👤</span><b>1 · أنشئ حسابك</b><p>اكتب اسمك، اختر الصف والمواد، وحدد كلمة مرور لحسابك المحلي.</p></article><article class="how-step"><span>💻</span><b>2 · اختر طريقة التشغيل</b><p>ادرس أونلاين أو نزّل الحزمة المناسبة لسطح المكتب أو اللوحات أو الهاتف.</p></article><article class="how-step"><span>🪜</span><b>3 · اتبع المراحل</b><p>ابدأ بمراجعة الدرس، واستخدم التأسيس اختياريًا عند الحاجة، ثم انتقل إلى التمارين.</p></article></div><div class="how-flow"><b>المسار الرئيسي:</b> مراجعة الدرس ← تمارين الكتاب ← تدريب إضافي. <b>التأسيس اختياري</b> عند الحاجة.</div><div class="how-actions"><button class="btn primary" type="button" id="modalStart">إنشاء حساب والبدء ←</button><button class="btn outline" type="button" data-close-how>متابعة تصفح الصفحة</button></div></section></div>
+<div class="toast" id="toast"></div>
+<script>
+const gradeNames={6:"السادس",7:"السابع",8:"الثامن",9:"التاسع",10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"};
+const data={
+ physics:{
+  6:[["الحركة والسرعة","القياس · الزمن · المسافة"],["القوى من حولنا","الدفع والسحب والاحتكاك"],["الضوء والصوت","ظواهر من حياتنا"]],
+  7:[["الحرارة والطاقة","انتقال الحرارة وقياسها"],["الكهرباء الساكنة","الشحنات والتجاذب"],["الآلات البسيطة","القوة والفائدة الآلية"]],
+  8:[["الحركة المنتظمة","السرعة وتمثيل الحركة"],["الضغط والكثافة","الموائع والأجسام"],["الدارات الكهربائية","التيار والجهد"]],
+  9:[["الحركة المتسارعة","السرعة والتسارع"],["قوانين نيوتن","القوة والحركة"],["الشغل والقدرة","تحولات الطاقة"]],
+  10:[["المتجهات","المقدار والاتجاه"],["الحركة في بعدين","المقذوفات والحركة"],["الشغل والطاقة","الحفظ والتحويل"]],
+  11:[["الحركة الرأسية","السقوط والقذف"],["الحركة الدائرية","السرعة والقوة المركزية"],["الموجات","الاهتزاز والانتشار"]],
+  12:[["الزخم الخطي والدفع","15 تمرينًا تفاعليًا"],["الكهرباء والمجال","الشحنة والقوة الكهربائية"],["الحث الكهرومغناطيسي","الفيض والقوة الدافعة"]]
+ },
+ chemistry:{
+  6:[["المادة وخواصها","الكتلة والحجم والحالة"],["المخاليط والمحاليل","فصل المواد"],["التغيرات الكيميائية","دلائل التفاعل"]],
+  7:[["بناء الذرة","النواة والإلكترونات"],["العناصر والمركبات","الرموز والصيغ"],["الأحماض والقواعد","مواد من حياتنا"]],
+  8:[["التركيب الإلكتروني","مستويات الطاقة"],["الروابط الكيميائية","كيف تتحد الذرات؟"],["التفاعلات","المعادلات ووزنها"]],
+  9:[["المعادلات الكيميائية","المتفاعلات والنواتج"],["الأكسدة والاختزال","انتقال الإلكترونات"],["الكيمياء العضوية","مركبات الكربون"]],
+  10:[["المول","الكمية والحسابات"],["الجدول الدوري","الدورية والخواص"],["الغازات","العلاقات والقوانين"]],
+  11:[["الاتزان الكيميائي","العوامل المؤثرة"],["سرعة التفاعل","التصادم والطاقة"],["الأحماض والقواعد","الرقم الهيدروجيني"]],
+  12:[["الكيمياء الحرارية","الطاقة في التفاعل"],["الكيمياء العضوية","المجموعات الوظيفية"],["التحليل الكيميائي","التعرّف إلى المواد"]]
+ }
+};
+let currentGrade=12,currentSubject="physics";
+function drawGrades(){const box=document.getElementById("grades");box.innerHTML=Object.keys(gradeNames).map(g=>`<button class="grade-btn ${+g===currentGrade?'active':''}" data-grade="${g}">${g}<br><small>${gradeNames[g]}</small></button>`).join("");box.querySelectorAll("button").forEach(b=>b.onclick=()=>{currentGrade=+b.dataset.grade;drawGrades();drawCourses();});}
+function drawCourses(){
+ const title=document.getElementById("gradeTitle");
+ title.textContent="الصف "+gradeNames[currentGrade];
+ const items=data[currentSubject][currentGrade];
+ document.getElementById("courses").innerHTML=items.map((x,i)=>{
+  const live=currentSubject==="physics"&&currentGrade===12&&i===0;
+  const hit=live?`<a class="course-hit" href="#" aria-label="فتح تمارين الزخم الخطي والدفع" onclick="return triggerMomentum(event)"></a>`:"";
+  return `<article class="course-card ${currentSubject==='chemistry'?'chem':''}">${hit}<span class="course-label">${currentSubject==='physics'?'⚛️ فيزياء':'🧪 كيمياء'}</span><h4>${x[0]}</h4><p>${x[1]}</p><div class="course-meta"><span>📘 شرح مبسّط</span><span>✍️ تمارين تفاعلية</span><span class="soon ${live?'available':''}">${live?'● متاح الآن':'◷ قريبًا'}</span></div></article>`;
+ }).join("");
+}
+document.querySelectorAll(".subject-tab").forEach(b=>b.onclick=()=>{currentSubject=b.dataset.sub;document.querySelectorAll(".subject-tab").forEach(x=>x.classList.toggle("active",x===b));drawCourses();});
+const theme=document.getElementById("theme");theme.onclick=()=>{const root=document.documentElement;const next=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=next;try{localStorage.setItem("samed-theme",next)}catch(e){}};try{const t=localStorage.getItem("samed-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+function notify(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.classList.remove("show"),2200)}
+document.getElementById("menu").onclick=()=>{document.querySelector(".nav-links").classList.toggle("open");syncFrameHeight();};
+drawGrades();drawCourses();
+</script>
+
+<script>
+// جسر Streamlit الرسمي + تمرير سلس وتنظيف واجهة التمارين السابقة.
+function sendMessageToStreamlitClient(type, data) {
+  var outData = Object.assign({ isStreamlitMessage: true, type: type }, data);
+  window.parent.postMessage(outData, "*");
+}
+function initStreamlitComponent() {
+  sendMessageToStreamlitClient("streamlit:componentReady", {apiVersion: 1});
+}
+function setStreamlitFrameHeight(height) {
+  sendMessageToStreamlitClient("streamlit:setFrameHeight", {height: height});
+}
+function sendDataToPython(data) {
+  sendMessageToStreamlitClient("streamlit:setComponentValue", {value:data, dataType:"json"});
+}
+
+function cleanupParentExerciseUi() {
+  try {
+    var pw = window.parent;
+    var pd = pw.document;
+    if (typeof pw.__studentSamedExerciseCleanup === "function") {
+      try { pw.__studentSamedExerciseCleanup(); } catch (e0) {}
+    }
+    ["phys-dock", "phys-frozen-card", "phys-frozen-tab"].forEach(function (id) {
+      var el = pd.getElementById(id); if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+    var main = pd.querySelector('section[data-testid="stMain"]');
+    if (main) {
+      main.style.removeProperty("padding-right");
+      if (main.dataset.physReserve) delete main.dataset.physReserve;
+    }
+    var reserved = pd.querySelectorAll("[data-phys-res]");
+    for (var i = 0; i < reserved.length; i++) {
+      reserved[i].style.removeProperty("padding-right");
+      reserved[i].removeAttribute("data-phys-res");
+    }
+    pd.documentElement.classList.remove("phys-js");
+    if (pd.body && pd.body.dataset.physCommitGuard) delete pd.body.dataset.physCommitGuard;
+  } catch (err) {}
+}
+
+var frameTimer = null, lastFrameHeight = 0;
+function measuredLandingHeight(){
+  var nodes=[document.querySelector('.nav-shell'),document.querySelector('main'),document.querySelector('footer')].filter(Boolean);
+  var bottom=nodes.reduce(function(v,n){return Math.max(v,n.getBoundingClientRect().bottom);},0);
+  return Math.max(600,Math.ceil(bottom));
+}
+function syncFrameHeight() {
+  if (frameTimer) cancelAnimationFrame(frameTimer);
+  frameTimer = requestAnimationFrame(function () {
+    var height=measuredLandingHeight();
+    if(Math.abs(height-lastFrameHeight)>=2){lastFrameHeight=height;setStreamlitFrameHeight(height);}
+  });
+}
+
+function localProfile(){try{return JSON.parse(localStorage.getItem("samed-profile-v1")||"null")}catch(e){return null}}
+function sendAction(action){sendDataToPython({action:action,token:String(Date.now())+"-"+Math.random().toString(36).slice(2)});}
+function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();}sendAction(localProfile()?"open_dashboard":"open_onboarding");return false;}
+function triggerDashboard(event){if(event){event.preventDefault();event.stopPropagation();}sendAction(localProfile()?"open_dashboard":"open_onboarding");return false;}
+function triggerMomentum(event) {
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  if(!localProfile()){sendAction("open_onboarding");return false;}
+  sendDataToPython({
+    action:"open_momentum",
+    token:String(Date.now()) + "-" + Math.random().toString(36).slice(2)
+  });
+  return false;
+}
+
+function parentScrollContext(){
+  try{
+    var pd=window.parent.document;
+    var scroller=pd.querySelector('section[data-testid="stMain"]')||pd.querySelector('[data-testid="stAppViewContainer"]')||pd.scrollingElement;
+    return {doc:pd,scroller:scroller};
+  }catch(e){return null;}
+}
+function scrollToLandingTarget(target,behavior){
+  if(!target)return;
+  try{
+    var ctx=parentScrollContext(),frame=window.frameElement;
+    if(!ctx||!frame)throw new Error('no parent scroller');
+    var sc=ctx.scroller,fr=frame.getBoundingClientRect(),tr=target.getBoundingClientRect();
+    if(sc&&sc!==ctx.doc.scrollingElement&&sc!==ctx.doc.documentElement&&sc!==ctx.doc.body){
+      var sr=sc.getBoundingClientRect();
+      sc.scrollTo({top:sc.scrollTop+fr.top-sr.top+tr.top-12,behavior:behavior||'smooth'});
+    }else{
+      var current=window.parent.scrollY||(ctx.doc.scrollingElement?ctx.doc.scrollingElement.scrollTop:0)||0;
+      window.parent.scrollTo({top:current+fr.top+tr.top-12,behavior:behavior||'smooth'});
+    }
+  }catch(e){target.scrollIntoView({behavior:behavior||'smooth',block:'start'});}
+}
+function scrollLandingTop(){scrollToLandingTarget(document.getElementById('home'),'auto');}
+function wireSmoothAnchors() {
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){
+    var href=a.getAttribute('href');if(!href||href==='#')return;
+    a.addEventListener('click',function(ev){var target=document.querySelector(href);if(!target)return;ev.preventDefault();scrollToLandingTarget(target,'smooth');document.querySelector('.nav-links').classList.remove('open');});
+  });
+}
+function modalViewport(){
+  try{var ctx=parentScrollContext(),frame=window.frameElement,fr=frame.getBoundingClientRect();var sc=ctx.scroller;if(sc&&sc!==ctx.doc.scrollingElement&&sc!==ctx.doc.documentElement&&sc!==ctx.doc.body){var sr=sc.getBoundingClientRect();return {top:Math.max(8,sr.top-fr.top+8),height:Math.max(520,sr.height-16)};}return {top:Math.max(8,-fr.top+8),height:Math.max(520,window.parent.innerHeight-16)};}catch(e){return {top:18,height:720};}
+}
+function openHowModal(){var m=document.getElementById('howModal'),v=modalViewport();m.style.top=v.top+'px';m.style.height=v.height+'px';m.hidden=false;m.setAttribute('aria-hidden','false');setTimeout(()=>m.querySelector('.how-close').focus(),20);}
+function closeHowModal(){var m=document.getElementById('howModal');m.hidden=true;m.setAttribute('aria-hidden','true');}
+document.getElementById('contactBtn').onclick=function(){sendAction('open_contact');};document.getElementById('contactHeaderBtn').onclick=function(){sendAction('open_contact');};document.getElementById('howBtn').onclick=openHowModal;document.getElementById('howWorksBtn').onclick=openHowModal;document.getElementById('modalStart').onclick=function(){closeHowModal();sendAction(localProfile()?'open_dashboard':'open_onboarding');};document.querySelectorAll('[data-close-how]').forEach(function(x){x.onclick=closeHowModal;});document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHowModal();});
+
+function onDataFromPython(event) {
+  if (!event.data || event.data.type !== "streamlit:render") return;
+  cleanupParentExerciseUi();
+  syncFrameHeight();
+}
+
+window.addEventListener("message", onDataFromPython);
+window.addEventListener("resize", syncFrameHeight);
+initStreamlitComponent();
+window.addEventListener("load", function () {
+  var p=localProfile();
+  var account=document.getElementById("accountBtn");
+  if(account) account.textContent=p?"لوحة الطالب":"تسجيل الطالب";
+  if(p) sendDataToPython({action:"profile_loaded",profile:p});
+  cleanupParentExerciseUi();
+  wireSmoothAnchors();
+  syncFrameHeight();
+  scrollLandingTop();
+  if (window.ResizeObserver) {
+    var observer=new ResizeObserver(syncFrameHeight);
+    [document.querySelector(".nav-shell"),document.querySelector("main"),document.querySelector("footer")].filter(Boolean).forEach(function(node){observer.observe(node);});
+  }
+});
+</script>
+
+</body>
+</html>
