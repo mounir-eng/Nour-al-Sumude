@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#245e65">
+<title>الطالب الصامد — منصة التعلم الشخصية</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="dashboard-v13.css">
+</head>
+<body class="student-ui">
+<header class="student-header">
+  <div class="ui-container student-header-inner">
+    <div class="student-brand">
+      <span class="brand-shield" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M16 2.8 5.6 7.1v8.1c0 6.4 4.3 11.7 10.4 13.7 6.1-2 10.4-7.3 10.4-13.7V7.1L16 2.8Z" stroke="#fff" stroke-width="1.9"/><path d="M10.2 13.1c2.3-.2 4.2.5 5.8 2 1.6-1.5 3.5-2.2 5.8-2v7.2c-2.5-.2-4.4.5-5.8 2.1-1.4-1.6-3.3-2.3-5.8-2.1v-7.2Z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+      <span><b>الطالب الصامد</b><small>منصة التعلّم الشخصية</small></span>
+    </div>
+    <div class="header-actions">
+      <span id="net" class="net-pill">متصل</span><a class="ui-control dashboard-only hidden" href="contact.html">✉️ <span>تواصل</span></a>
+      <button id="install" class="ui-control gold hidden" type="button" aria-label="تثبيت التطبيق">＋ <span>تثبيت</span></button>
+      <button id="editProfile" class="ui-control dashboard-only hidden" type="button">⚙ <span>الإعدادات</span></button>
+      <button id="downloadUnit" class="ui-control primary dashboard-only hidden" type="button">⇩ <span>تحميل الوحدة</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="ui-container student-main">
+  <section id="auth" class="auth-shell">
+    <div class="auth-head"><span>حساب محلي</span><h1>ابدأ مسارك الشخصي</h1><p>اختر مستواك وموادك، ثم ادرس أونلاين أو تابع المحتوى المحمّل عند انقطاع الإنترنت.</p></div><div class="auth-roadmap"><span><b>1</b> أنشئ الحساب</span><span><b>2</b> اختر طريقة التشغيل</span><span><b>3</b> اتبع مراحل التعلّم</span></div>
+    <form id="profileForm" class="auth-body">
+      <div class="form-grid">
+        <div class="ui-field"><label for="name">اسم الطالب</label><input id="name" required minlength="2" placeholder="اكتب اسمك"></div>
+        <div class="ui-field"><label for="grade">الصف</label><select id="grade"><option value="6">السادس</option><option value="7">السابع</option><option value="8">الثامن</option><option value="9">التاسع</option><option value="10">العاشر</option><option value="11">الحادي عشر</option><option value="12" selected>الثاني عشر</option></select></div>
+        <div class="ui-field full"><label>المواد</label><div class="subject-checks"><label class="subject-check"><input id="physics" type="checkbox" checked> ⚛️ الفيزياء</label><label class="subject-check"><input id="chemistry" type="checkbox" checked> 🧪 الكيمياء</label></div></div>
+        <div class="ui-field"><label for="password">كلمة المرور</label><input id="password" type="password" minlength="6" autocomplete="new-password" placeholder="6 أحرف على الأقل"></div><div class="ui-field"><label for="confirmPassword">تأكيد كلمة المرور</label><input id="confirmPassword" type="password" minlength="6" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور"></div><div class="auth-all-subjects">📚 جميع المواد الدراسية ستتوفر قريبًا.</div>
+      </div>
+      <button class="auth-submit" type="submit">حفظ وفتح لوحة الطالب</button>
+      <div class="auth-note"><span>📶</span><span>تعمل المنصة حتى عند انقطاع الإنترنت بعد تنزيل المحتوى، ويُحفظ التقدم على هذا الجهاز.</span></div>
+    </form>
+  </section>
+
+  <section id="dashboard" class="hidden" aria-label="لوحة الطالب">
+    <section class="student-hero">
+      <div class="hero-welcome"><span class="hero-label">✦ لوحة الطالب</span><h1 id="welcome">مرحبًا 👋</h1><p>اختر أي جزء من المسار مباشرة؛ الترتيب مقترح فقط وليس إلزاميًا.</p><div class="hero-grade"><span id="gradeMetric">Grade 12</span><span>حفظ تلقائي محلي</span><span>جاهز للعمل دون اتصال</span></div></div>
+      <div class="hero-progress"><div id="heroRing" class="progress-ring-lg" style="--progress:0"><b id="heroPct">0%</b></div><div><strong>إنجاز الخطة</strong><small id="heroProgressMeta">0 من 0 محتوى</small></div></div>
+      <div class="hero-quick">
+        <div class="quick-stat"><span class="quick-icon">✓</span><span><b id="doneMetric">0 محتوى</b><small>أنجزتها حتى الآن</small></span></div>
+        <div class="quick-stat"><span class="quick-icon">◫</span><span><b id="stageMetric">3 مراحل + تأسيس</b><small>التأسيس اختياري عند الحاجة</small></span></div>
+        <div class="quick-stat"><span class="quick-icon">★</span><span><b id="xpMetric">0 نقطة</b><small>نقاط المثابرة</small></span></div>
+      </div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="pathTitle">
+      <div class="section-title"><div><h2 id="pathTitle">مسارك المفتوح 🎓</h2><p>جميع الأجزاء مفتوحة: اختر التأسيس أو المراجعة أو تمارين الكتاب أو التدريب مباشرة.</p></div><div id="pathFilters" class="path-filters"></div></div>
+      <div class="path-panel"><div id="timeline" class="timeline-grid"></div></div>
+    </section>
+
+    <section class="ui-section" aria-labelledby="modulesTitle">
+      <div class="section-title"><div><h2 id="modulesTitle">الوحدات المسجلة حاليًا</h2><p id="modulesSubtitle">محتوى الصف الثاني عشر · افتح البطاقة للاطلاع على التفاصيل</p></div><div class="module-filters"><button class="module-filter active" data-filter="all">الكل</button><button class="module-filter" data-filter="physics">الفيزياء</button><button class="module-filter" data-filter="chemistry">الكيمياء</button></div></div>
+      <div id="moduleList" class="module-list"></div>
+    </section>
+
+    <div class="module-note">📶 <b>وضع الاتصال الضعيف:</b> حمّل الوحدة مرة واحدة، وسيبقى المحتوى والتقدم متاحين على هذا الجهاز عند انقطاع الإنترنت.</div>
+    <footer class="pwa-footer"><div><b>🛡️ الطالب الصامد</b><small>تعليم مبسّط لطلبة غزة يعمل أونلاين وأوفلاين</small></div><nav><a href="contact.html">تواصل معنا</a><a href="#" id="footerEdit">إعدادات الحساب</a></nav></footer>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
