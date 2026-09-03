@@ -1685,6 +1685,40 @@ for _q3 in questions_db:
         for _s3 in _q3.get('steps', []):
             _s3['micro_only'] = True
 
+PB3_CHOICES = {
+    "1": {
+        "choices": [
+            "زمن التوقف على الرمل أطول فيزداد دفع القوة، ولهذا تكون القوة المؤثرة على البيضة أصغر.",
+            "التغير في الزخم واحد في الحالتين، والرمل يُطيل زمن التوقف؛ ولأن F = ΔP ÷ Δt تصغر القوة فلا تنكسر البيضة.",
+            "الرمل يُقلل سرعة البيضة قبل وصولها فيصغر التغير في زخمها، ولهذا تصغر القوة."
+        ],
+        "answer_index": 1
+    },
+    "2": {
+        "choices": [
+            "طول الماسورة يُبقي القوة مؤثرة زمنًا أطول فيزداد الدفع I = F × Δt، والدفع هو التغير في الزخم فتخرج القذيفة بسرعة أكبر.",
+            "طول الماسورة يزيد قوة الغازات المؤثرة على القذيفة فيزداد الدفع وتزداد السرعة.",
+            "طول الماسورة يُقلل كتلة القذيفة الفعّالة، ولأن الزخم محفوظ تزداد سرعتها."
+        ],
+        "answer_index": 0
+    },
+    "3": {
+        "choices": [
+            "القوة المؤثرة على المدفع أصغر من القوة المؤثرة على القذيفة، ولهذا تكون سرعة ارتداده أصغر.",
+            "كتلة المدفع الكبيرة تجعل زخمه أصغر من زخم القذيفة، فتكون سرعة ارتداده أصغر.",
+            "الزخمان متساويان في المقدار ومتعاكسان في الاتجاه، وكتلة المدفع أكبر بكثير فتكون سرعة ارتداده أصغر بكثير."
+        ],
+        "answer_index": 2
+    }
+}
+for _q3 in questions_db:
+    if _q3.get('id') == 'pb3':
+        for _s3 in _q3.get('steps', []):
+            _c3 = PB3_CHOICES.get(str(_s3.get('num'))) or PB3_CHOICES.get(_s3.get('num'))
+            if _c3:
+                _s3['choices'] = list(_c3['choices'])
+                _s3['answer_index'] = _c3['answer_index']
+
 TOTAL_QUESTIONS = len(questions_db)
 
 FORMULA_SHEET = [['الزخم الخطي', 'P = m v'],
@@ -3420,10 +3454,22 @@ else:
             potential_points = calc_points(attempts_so_far + 1, hint_lvl_current)
 
             _micro_only = bool(step.get("micro_only"))
+            _choices = step.get("choices") or []
+            _pick = None
             _sym_key = f"symbuf_{step_key}"
             _pending = st.session_state.get(_sym_key)
             user_val = ""
-            if _micro_only:
+            if _choices:
+                st.markdown("<div class='note-box'>🧠 اختر التعليل الصحيح من بين التعليلات الثلاثة أدناه:</div>", unsafe_allow_html=True)
+                _pend_pick = st.session_state.pop(f"mcqpick_{step_key}", None)
+                if _pend_pick is not None:
+                    st.session_state.pop(f"mcq_{step_key}", None)
+                _pick = st.radio(
+                    "choices", options=list(range(len(_choices))),
+                    format_func=lambda _ci: _choices[_ci], key=f"mcq_{step_key}",
+                    index=_pend_pick, label_visibility="collapsed",
+                )
+            elif _micro_only:
                 st.markdown("<div class='note-box'>✅ أكمل فراغات الخطوات أعلاه بالترتيب، ثم اضغط «تحقق 🎯» للانتقال للخطوة التالية.</div>", unsafe_allow_html=True)
             else:
                 if _pending is not None:
@@ -3472,6 +3518,8 @@ else:
 
             if reveal_btn:
                 st.session_state.pop(f"proofinput_{step_key}", None)
+                if step.get("choices"):
+                    st.session_state[f"mcqpick_{step_key}"] = step.get("answer_index", 0)
                 st.session_state.setdefault("physbook_revealed", {})[step_key] = True
                 st.session_state["physbook_hint_level"][step_key] = 2
                 st.session_state["physbook_no_hint_flag"][qid] = False
@@ -3495,7 +3543,18 @@ else:
                 st.session_state["physbook_attempts"][step_key] = st.session_state["physbook_attempts"].get(step_key, 0) + 1
                 attempts_now = st.session_state["physbook_attempts"][step_key]
 
-                if _micro_only:
+                if _choices:
+                    if _pick is None:
+                        st.warning("اختر أحد التعليلات أولاً!")
+                    elif _pick == step.get("answer_index", 0):
+                        pts = calc_points(attempts_now, hint_lvl_current)
+                        st.session_state["physbook_total_xp"] += pts
+                        st.success(f"{random.choice(SUCCESS_PHRASES)} تعليل صحيح! (+{pts} XP)")
+                        st.session_state[step_state_key] = s_num + 1
+                        st.rerun()
+                    else:
+                        st.error("التعليل قريب لكنه غير دقيق — راجع خطوات الحل أعلاه ثم اختر مرة أخرى. ❌")
+                elif _micro_only:
                     pts = calc_points(attempts_now, hint_lvl_current)
                     st.session_state["physbook_total_xp"] += pts
                     st.success(f"{random.choice(SUCCESS_PHRASES)} أحسنت — اكتملت خطوات التعليل! (+{pts} XP)")
@@ -4140,7 +4199,7 @@ components.html(
       mirrorValue(this.value);
       scheduleCommit();
     });
-    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); });
+    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); showSymPadFor(this); });
     inp.addEventListener('blur', function () {
       if (committing) return;
       commitValue(this.value);
@@ -4282,7 +4341,7 @@ components.html(
 
   function wirePracticeInput(inp, line) {
     inp.addEventListener('input', function () { autoSize(this); });
-    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); });
+    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); showSymPadFor(this); });
     inp.addEventListener('blur', function () { tryPractice(this, line); });
     inp.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
@@ -4294,6 +4353,65 @@ components.html(
     });
     inp.addEventListener('mousedown', function (e) { e.stopPropagation(); });
     inp.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  var SYM_LIST = ['Δ', 'ΔP', 'Δt', 'θ', 'π', '×', '÷', '√', '²', '³', '≈', '±', '→', '←', '°', 'm/s', 'm/s²', 'kg', 'N', 'N·s', 'kg·m/s', 'J', '−', '⌫'];
+  var symPadEl = null, symPadTarget = null;
+  function insertSym(sym) {
+    var el = symPadTarget;
+    if (!el || !el.parentNode) { return; }
+    var a = el.value.length, b = el.value.length;
+    try { if (el.selectionStart !== null && el.selectionStart !== undefined) { a = el.selectionStart; b = el.selectionEnd; } } catch (e1) { }
+    if (sym === '⌫') {
+      var p = (a === b && a > 0) ? a - 1 : a;
+      el.value = el.value.slice(0, p) + el.value.slice(b);
+      try { el.setSelectionRange(p, p); } catch (e2) { }
+    } else {
+      el.value = el.value.slice(0, a) + sym + el.value.slice(b);
+      var c = a + sym.length;
+      try { el.setSelectionRange(c, c); } catch (e3) { }
+    }
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e4) { }
+    try { el.focus(); } catch (e5) { }
+  }
+  function ensureSymPad() {
+    if (symPadEl && symPadEl.parentNode) { return symPadEl; }
+    var pad = doc.createElement('div');
+    pad.id = 'phys-sym-pad';
+    pad.setAttribute('dir', 'rtl');
+    pad.style.cssText = 'position:fixed;z-index:99999;bottom:14px;right:14px;max-width:min(94vw,520px);padding:8px 10px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;box-shadow:0 10px 26px rgba(15,23,42,.2);display:none;text-align:right';
+    var head = doc.createElement('div');
+    head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:.85rem;color:#334155;margin-bottom:6px';
+    var ttl = doc.createElement('span');
+    ttl.textContent = '🔤 مكتبة الرموز';
+    var cls = doc.createElement('button');
+    cls.type = 'button';
+    cls.textContent = '✕';
+    cls.style.cssText = 'border:none;background:transparent;font-size:1rem;cursor:pointer;color:#64748b';
+    cls.addEventListener('click', function (e) { e.preventDefault(); pad.style.display = 'none'; });
+    head.appendChild(ttl); head.appendChild(cls);
+    pad.appendChild(head);
+    var row = doc.createElement('div');
+    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+    for (var i = 0; i < SYM_LIST.length; i++) {
+      (function (sym) {
+        var b = doc.createElement('button');
+        b.type = 'button';
+        b.textContent = sym;
+        b.style.cssText = 'min-width:40px;padding:5px 9px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:1rem;font-weight:700;color:#0f172a;cursor:pointer';
+        b.addEventListener('mousedown', function (e) { e.preventDefault(); e.stopPropagation(); });
+        b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); insertSym(sym); });
+        row.appendChild(b);
+      })(SYM_LIST[i]);
+    }
+    pad.appendChild(row);
+    doc.body.appendChild(pad);
+    symPadEl = pad;
+    return pad;
+  }
+  function showSymPadFor(inp) {
+    symPadTarget = inp;
+    ensureSymPad().style.display = 'block';
   }
 
   function wireMicroSlots() {
