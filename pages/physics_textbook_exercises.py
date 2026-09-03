@@ -1085,7 +1085,7 @@ st.markdown("""
 
     #phys-dock {
         position: fixed;
-        z-index: 9998;
+        z-index: 100000;
         display: flex;
         flex-direction: row;
         align-items: flex-start;
@@ -1108,6 +1108,12 @@ st.markdown("""
     .phys-ic-wrap.on .lbl-calc { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
 
     .phys-calc { direction: ltr; }
+    .phys-calc-input {
+        width: 100%; box-sizing: border-box; direction: ltr; text-align: left;
+        font-size: 1.15rem; font-weight: 800; padding: 10px 12px; margin-bottom: 8px;
+        border: 2px solid #34d399; border-radius: 12px; background: #f0fdf4; color: #065f46;
+    }
+    .phys-calc-input:focus { outline: none; border-color: #059669; background: #fff; }
     .phys-calc-disp {
         background: #0f172a; color: #ffffff; border-radius: 12px;
         padding: 10px 12px; margin-bottom: 10px; text-align: right; min-height: 60px;
@@ -2531,13 +2537,49 @@ def derive_html(qid, step):
         + "</div>"
     )
 
+def _unit_suffix(eq_text):
+    """يستخرج الوحدة المكتوبة بعد علامة الاستفهام في المعادلة (مثل N·s)."""
+    import re as _re
+    s = str(eq_text or "")
+    if "?" not in s:
+        return ""
+    tail = s[s.rindex("?") + 1:].strip()
+    if not tail or _re.search("[\u0600-\u06FF]", tail):
+        return ""
+    if not _re.match("^[A-Za-z\u00b0%][A-Za-z0-9\u00b7\u00b2\u00b3/.^\-]*$", tail):
+        return ""
+    return tail
+
+
+def _with_unit(ans_text, unit):
+    """يولّد كل الصيغ المقبولة للإجابة مع الوحدة."""
+    outs = []
+    variants = [unit, unit.replace("·", "."), unit.replace("·", " "), unit.replace("·", "")]
+    for a in str(ans_text).split("|"):
+        a = a.strip()
+        if not a:
+            continue
+        for u in variants:
+            u = u.strip()
+            if not u:
+                continue
+            outs.append(a + " " + u)
+            outs.append(a + u)
+    seen = []
+    for o in outs:
+        if o not in seen:
+            seen.append(o)
+    return "|".join(seen)
+
+
 def micro_html(step, final_mode="preview", field="micro", start=0, final_say=None, qid="", reveal=False):
     """صندوق الخطوات المبسّطة: يعوّض الطالب في كل خطوة حتى يصل للعبارة الكاملة"""
     micro = step.get(field) or []
     cs = "1" if step.get("case_sensitive") else "0"
     rows = []
     n = start
-    for item in micro:
+    _last_i = len(micro) - 1
+    for _mi, item in enumerate(micro):
         say = item[0] if len(item) > 0 else ""
         eq = item[1] if len(item) > 1 else ""
         ans = item[2] if len(item) > 2 else None
@@ -2545,6 +2587,13 @@ def micro_html(step, final_mode="preview", field="micro", start=0, final_say=Non
             _lhs, _rhs = str(eq).rsplit("=", 1)
             if _rhs.strip():
                 eq, ans = _lhs + "= ?", _rhs.strip()
+        if _mi == _last_i and ans is not None:
+            _unit = _unit_suffix(eq)
+            if _unit:
+                eq = str(eq)[: str(eq).rindex("?") + 1]
+                say = (say or "").rstrip()
+                say = say.rstrip(":").rstrip() + " — اكتب النتيجة مع الوحدة (" + _unit + ")"
+                ans = _with_unit(ans, _unit)
         if reveal and ans is not None:
             eq = str(eq).replace("?", str(ans).split("|")[0])
             ans = None
@@ -4471,7 +4520,7 @@ components.html(
     var pad = doc.createElement('div');
     pad.id = 'phys-sym-pad';
     pad.setAttribute('dir', 'rtl');
-    pad.style.cssText = 'position:fixed;z-index:99999;bottom:14px;right:14px;max-width:min(94vw,520px);padding:8px 10px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;box-shadow:0 10px 26px rgba(15,23,42,.2);display:none;text-align:right';
+    pad.style.cssText = 'position:fixed;z-index:99990;bottom:14px;left:14px;max-width:min(94vw,520px);padding:8px 10px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;box-shadow:0 10px 26px rgba(15,23,42,.2);display:none;text-align:right';
     var head = doc.createElement('div');
     head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:.85rem;color:#334155;margin-bottom:6px';
     var ttl = doc.createElement('span');
@@ -4675,6 +4724,7 @@ components.html(
       ['x\u00b2', 'sq'], ['=', 'eq']
     ];
     var h = '<div class="phys-calc" data-expr="">' +
+      '<input type="text" class="phys-calc-input" inputmode="text" autocomplete="off" placeholder="\u0627\u0643\u062a\u0628 \u0627\u0644\u0639\u0645\u0644\u064a\u0629 \u062b\u0645 Enter" />' +
       '<div class="phys-calc-disp">' +
         '<div class="phys-calc-expr">0</div>' +
         '<div class="phys-calc-val">0</div>' +
@@ -4714,6 +4764,8 @@ components.html(
     var ex = pane.querySelector('.phys-calc-expr');
     var vl = pane.querySelector('.phys-calc-val');
     if (ex) ex.textContent = calcPretty(e) || '0';
+    var ci = pane.querySelector('.phys-calc-input');
+    if (ci && doc.activeElement !== ci) { ci.value = calcPretty(e); }
     if (vl) {
       var v = calcEval(e);
       vl.textContent = (e === '') ? '0' : (v === '' ? '\u2026' : v);
@@ -4784,6 +4836,26 @@ components.html(
         '</div>' +
       '</div>';
     doc.body.appendChild(d);
+    if (!doc.__physDockDelegated) {
+      doc.__physDockDelegated = 1;
+      doc.addEventListener('click', function (ev) {
+        var tt = ev.target;
+        if (!tt || !tt.closest) return;
+        var dk = doc.getElementById(DOCK_ID);
+        if (!dk) return;
+        var w2 = tt.closest('.phys-ic-wrap');
+        if (w2 && dk.contains(w2)) {
+          ev.preventDefault(); ev.stopPropagation();
+          dockToggle(w2.getAttribute('data-kind'));
+          return;
+        }
+        var kb = tt.closest('.phys-calc-key');
+        if (kb && dk.contains(kb)) {
+          ev.preventDefault(); ev.stopPropagation();
+          calcKey(dk, kb.getAttribute('data-k'));
+        }
+      }, true);
+    }
     var wraps = d.querySelectorAll('.phys-ic-wrap'), wi;
     for (wi = 0; wi < wraps.length; wi++) {
       (function (el) {
@@ -4800,6 +4872,29 @@ components.html(
       e.preventDefault(); e.stopPropagation();
       calcKey(d, b.getAttribute('data-k'));
     });
+    d.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains('phys-calc-input')) return;
+      var pane = d.querySelector('.phys-calc');
+      if (!pane) return;
+      var raw = String(t.value || '')
+        .replace(/\u00d7/g, '*').replace(/\u00f7/g, '/')
+        .replace(/,/g, '.').replace(/\u221a/g, 'Math.sqrt(')
+        .replace(/\u00b2/g, '**2');
+      pane.setAttribute('data-expr', raw);
+      calcPaint(d);
+    });
+    d.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains('phys-calc-input')) return;
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        calcKey(d, 'eq');
+        var pn = d.querySelector('.phys-calc');
+        if (pn) { t.value = calcPretty(pn.getAttribute('data-expr') || ''); }
+      }
+    }, true);
     var cur = dockRead();
     if (cur !== 'none') {
       var pane = d.querySelector('.phys-pane');
