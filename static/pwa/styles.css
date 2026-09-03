@@ -54,3 +54,11 @@ body{background:#f8fafc;color:#173b3d}.top{background:linear-gradient(125deg,#24
 .hint-rich ol.hint-steps{margin:6px 18px 6px 0;padding:0 14px 0 0}
 .hint-rich ol.hint-steps li{margin:4px 0}
 .hint-rich .hint-eq{display:inline-block;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:1px 8px;margin-inline-start:4px}
+
+/* v20: مكتبة الرموز */
+.sym-pad{margin:10px 0;padding:8px 10px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;text-align:right}
+.sym-pad b{font-size:.9rem;color:#334155}
+.sym-pad small{display:block;color:#64748b;margin-top:4px}
+.sym-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sym-key{min-width:42px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:1rem;font-weight:700;color:#0f172a;cursor:pointer}
+.sym-key:active{background:#e0f2fe;transform:translateY(1px)}
