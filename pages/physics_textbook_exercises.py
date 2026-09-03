@@ -2455,7 +2455,7 @@ def derive_html(qid, step):
         + "</div>"
     )
 
-def micro_html(step, final_mode="preview", field="micro", start=0, final_say=None, qid=""):
+def micro_html(step, final_mode="preview", field="micro", start=0, final_say=None, qid="", reveal=False):
     """صندوق الخطوات المبسّطة: يعوّض الطالب في كل خطوة حتى يصل للعبارة الكاملة"""
     micro = step.get(field) or []
     cs = "1" if step.get("case_sensitive") else "0"
@@ -2465,6 +2465,13 @@ def micro_html(step, final_mode="preview", field="micro", start=0, final_say=Non
         say = item[0] if len(item) > 0 else ""
         eq = item[1] if len(item) > 1 else ""
         ans = item[2] if len(item) > 2 else None
+        if ans is None and eq and "=" in str(eq) and "?" not in str(eq):
+            _lhs, _rhs = str(eq).rsplit("=", 1)
+            if _rhs.strip():
+                eq, ans = _lhs + "= ?", _rhs.strip()
+        if reveal and ans is not None:
+            eq = str(eq).replace("?", str(ans).split("|")[0])
+            ans = None
         n += 1
         attrs = ' class="micro-line"'
         if ans is not None:
@@ -2481,7 +2488,7 @@ def micro_html(step, final_mode="preview", field="micro", start=0, final_say=Non
         rows.append(
             '<div class="micro-line micro-final"><span class="micro-say"><span class="micro-num">'
             + str(n) + "</span>" + _fsay + "</span>"
-            + '<div class="eq-box">' + eq_html(step.get("latex_preview", "")) + "</div></div>"
+            + '<div class="eq-box">' + eq_html(step.get("latex_preview", "") if reveal else _mask_ans(step.get("latex_preview", ""))) + "</div></div>"
         )
     return '<div class="micro-box" data-mk="' + str(field) + '">' + "".join(rows) + "</div>"
 
@@ -2607,6 +2614,63 @@ def result_html(result_text, label: str = "✅ النتيجة", pre_html: bool =
         '<div class="result-box"><span class="result-label">'
         + label + ":</span>" + body + "</div>"
     )
+
+
+def _mask_ans(txt):
+    """يخفي طرف المعادلة الأيمن (الإجابة) حتى لا تُعرض قبل أن يكتبها الطالب."""
+    t = str(txt or "")
+    if not t or "?" in t or "=" not in t:
+        return t
+    head, _tail = t.rsplit("=", 1)
+    if not _tail.strip():
+        return t
+    return head + "= ?"
+
+
+def _hint_micro_lines(step, field="micro", keep_last_blank=True):
+    """يشرح خطوات الحل ويكشف معادلاتها ما عدا الفراغ الأخير."""
+    rows = step.get(field) or []
+    out = []
+    for i, item in enumerate(rows):
+        say = item[0] if len(item) > 0 else ""
+        eq = item[1] if len(item) > 1 else ""
+        ans = item[2] if len(item) > 2 else None
+        if ans is not None and "?" in str(eq):
+            eq = str(eq).replace("?", str(ans).split("|")[0])
+        if keep_last_blank and i == len(rows) - 1:
+            eq = _mask_ans(eq)
+        out.append("<li><b>" + str(i + 1) + ".</b> " + str(say) + ((" <code>" + str(eq) + "</code>") if eq else "") + "</li>")
+    return "".join(out)
+
+
+def rich_hint(step, level=1):
+    """تلميح موسّع: شرح + جزء من الحل يتزايد مع المستوى."""
+    parts = []
+    if step.get("law"):
+        parts.append("<div><b>القانون المستعمل:</b> " + str(step["law"]) + "</div>")
+    if step.get("simple_explain"):
+        parts.append("<div>💬 " + str(step["simple_explain"]) + "</div>")
+    micro_html_lines = _hint_micro_lines(step, "micro", keep_last_blank=(level < 3))
+    if micro_html_lines:
+        parts.append("<div><b>خطوات الحل مفصّلة:</b><ol class=\"hint-steps\">" + micro_html_lines + "</ol></div>")
+    if level >= 2:
+        lines2 = _hint_micro_lines(step, "micro2", keep_last_blank=(level < 3))
+        if lines2:
+            parts.append("<div><b>تابع:</b><ol class=\"hint-steps\">" + lines2 + "</ol></div>")
+        if step.get("blanks"):
+            sub = str(step.get("prefix", ""))
+            for b in step["blanks"]:
+                sub += "(" + str(b["target"]) + ")" + str(b.get("suffix", ""))
+            parts.append("<div><b>هكذا يكون التعويض:</b> <code>" + sub + "</code></div>")
+            if step.get("has_root"):
+                parts.append("<div><b>تحت الجذر:</b> <code>" + str(step.get("root_prefix", "")) + " " + str(step.get("root_target", "")) + " " + str(step.get("root_suffix", "")) + "</code></div>")
+            parts.append("<div>احسب بالترتيب: ما داخل الأقواس أولاً، ثم الضرب والقسمة، واكتب الناتج في خانة "
+                         + str(step.get("result_label", "النتيجة")).strip().rstrip(":") + ".</div>")
+    if step.get("hint"):
+        parts.append("<div><b>مفتاح الفكرة:</b> " + str(step["hint"]) + "</div>")
+    if level < 3:
+        parts.append("<div><small>اضغط 💡 مرة أخرى لشرح أوسع، أو اضغط «✅ الإجابة الصحيحة» لإدخالها تلقائياً في الفراغات.</small></div>")
+    return "".join(parts)
 
 
 def calc_points(attempts_count, hint_lvl):
@@ -3082,9 +3146,10 @@ if qtype == "interactive":
             attempts_so_far = st.session_state["physbook_attempts"].get(step_key, 0)
             hint_lvl_current = st.session_state["physbook_hint_level"].get(step_key, 0)
             potential_points = calc_points(attempts_so_far + 1, hint_lvl_current)
+            _revealed = st.session_state.setdefault("physbook_revealed", {}).get(step_key, False)
             _mn = 0
             if step.get("micro"):
-                st.markdown(micro_html(step, final_mode="none", qid=qid), unsafe_allow_html=True)
+                st.markdown(micro_html(step, final_mode="none", qid=qid, reveal=_revealed), unsafe_allow_html=True)
                 _mn = len(step["micro"])
             user_blank_inputs = []
             with st.container(key="formula_blanks_row"):
@@ -3100,7 +3165,7 @@ if qtype == "interactive":
                     with cols[col_idx]:
                         val = st.number_input(
                             label=b["label"], key=f"blank_{qid}_{s_num}_{bidx}",
-                            value=None, placeholder="..", label_visibility="collapsed"
+                            value=(float(b["target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
                         )
                         user_blank_inputs.append(val)
                     col_idx += 1
@@ -3111,7 +3176,7 @@ if qtype == "interactive":
             _mn2 = 0
             if step.get("micro2"):
                 st.markdown(
-                    micro_html(step, final_mode="none", field="micro2", start=_mn + 1, qid=qid),
+                    micro_html(step, final_mode="none", field="micro2", start=_mn + 1, qid=qid, reveal=_revealed),
                     unsafe_allow_html=True,
                 )
                 _mn2 = len(step["micro2"])
@@ -3130,7 +3195,7 @@ if qtype == "interactive":
                     with r_c2:
                         user_root_val = st.number_input(
                             label="root_val", key=f"root_{qid}_{s_num}",
-                            value=None, placeholder="..", label_visibility="collapsed"
+                            value=(float(step["root_target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
                         )
                     with r_c3:
                         st.markdown(f"<div class='formula-text'>{eq_frag(step['root_suffix'])}</div>", unsafe_allow_html=True)
@@ -3150,17 +3215,31 @@ if qtype == "interactive":
                 with rc2:
                     user_result = st.number_input(
                         _rlabel, key=f"res_{qid}_{s_num}",
-                        value=None, placeholder="..", label_visibility="collapsed"
+                        value=(float(step["result_target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
                     )
                 with rc3:
                     st.markdown(f"<div class='formula-text'>{eq_frag(_runit)}</div>", unsafe_allow_html=True)
 
             with st.container(key="step_actions_row"):
-                _bc1, _bc2 = st.columns(2)
+                _bc1, _bc2, _bc3 = st.columns(3)
                 with _bc1:
                     check_btn = st.button("تحقق 🎯", key=f"btn_{qid}_{s_num}", use_container_width=True)
                 with _bc2:
                     hint_btn = st.button("💡 تلميح", key=f"hint_{qid}_{s_num}", use_container_width=True)
+                with _bc3:
+                    reveal_btn = st.button("✅ الإجابة الصحيحة", key=f"reveal_{qid}_{s_num}",
+                                           use_container_width=True, disabled=_revealed)
+
+            if reveal_btn:
+                for _bi in range(len(step.get("blanks") or [])):
+                    st.session_state.pop(f"blank_{qid}_{s_num}_{_bi}", None)
+                st.session_state.pop(f"root_{qid}_{s_num}", None)
+                st.session_state.pop(f"res_{qid}_{s_num}", None)
+                st.session_state.setdefault("physbook_revealed", {})[step_key] = True
+                st.session_state["physbook_hint_level"][step_key] = 3
+                st.session_state["physbook_no_hint_flag"][qid] = False
+                st.toast("تم إدخال الإجابة الصحيحة في الفراغات — اضغط «تحقق 🎯» للتقدم")
+                st.rerun()
 
             st.markdown(f'<span class="points-chip">🎯 نقاط هذه المحاولة المتوقعة: {potential_points}</span>', unsafe_allow_html=True)
 
@@ -3171,16 +3250,8 @@ if qtype == "interactive":
                 st.rerun()
 
             if hint_lvl_current >= 1:
-                if hint_lvl_current == 1:
-                    msg = "ابدأ بالتعويض عن كل قيمة معطاة في نص السؤال داخل مكانها الصحيح في القانون أعلاه، بنفس الترتيب من اليسار لليمين."
-                elif hint_lvl_current == 2:
-                    substituted = step["prefix"]
-                    for b in step["blanks"]:
-                        substituted += f"({b['target']})" + b["suffix"]
-                    msg = f"عوّض القيم كالتالي: {substituted}"
-                else:
-                    msg = step["hint"]
-                st.markdown(f'<div class="hint-box">💡 <b>تلميح (مستوى {hint_lvl_current}):</b> {msg}</div>', unsafe_allow_html=True)
+                msg = rich_hint(step, hint_lvl_current)
+                st.markdown(f'<div class="hint-box">💡 <b>شرح موجّه (مستوى {hint_lvl_current}):</b>{msg}</div>', unsafe_allow_html=True)
                 if hint_lvl_current < 3:
                     st.caption("بحاجة لمساعدة أكبر؟ اضغط 💡 تلميح مرة أخرى.")
 
@@ -3321,12 +3392,13 @@ else:
             if explain_mode:
                 st.markdown(f'<div class="explain-box">💬 {step.get("label", "")}</div>', unsafe_allow_html=True)
 
+            _revealed = st.session_state.setdefault("physbook_revealed", {}).get(step_key, False)
             _plabel = step.get("label", "")
             if step.get("micro"):
-                st.markdown(micro_html(step, final_say=_plabel, qid=qid), unsafe_allow_html=True)
+                st.markdown(micro_html(step, final_say=_plabel, qid=qid, reveal=_revealed), unsafe_allow_html=True)
             else:
                 st.markdown(
-                    micro_html(step, field="__nomicro__", final_say=_plabel, qid=qid),
+                    micro_html(step, field="__nomicro__", final_say=_plabel, qid=qid, reveal=_revealed),
                     unsafe_allow_html=True,
                 )
 
@@ -3341,16 +3413,28 @@ else:
                 with fc2:
                     user_val = st.text_input(
                         "input_field", key=f"proofinput_{step_key}",
+                        value=(str(step["target"]) if _revealed else ""),
                         placeholder="أدخل الإجابة...", label_visibility="collapsed"
                     )
                 with fc3:
                     st.markdown(f"<div class='formula-text'>{eq_frag(step['suffix'])}</div>", unsafe_allow_html=True)
 
-            btn_col, hint_col = st.columns(2)
+            btn_col, hint_col, rev_col = st.columns(3)
             with btn_col:
                 check_btn = st.button("تحقق 🎯", key=f"btn_{step_key}", use_container_width=True)
             with hint_col:
                 hint_btn = st.button("💡 تلميح", key=f"hint_{step_key}", use_container_width=True)
+            with rev_col:
+                reveal_btn = st.button("✅ الإجابة الصحيحة", key=f"reveal_{step_key}",
+                                       use_container_width=True, disabled=_revealed)
+
+            if reveal_btn:
+                st.session_state.pop(f"proofinput_{step_key}", None)
+                st.session_state.setdefault("physbook_revealed", {})[step_key] = True
+                st.session_state["physbook_hint_level"][step_key] = 2
+                st.session_state["physbook_no_hint_flag"][qid] = False
+                st.toast("تم إدخال الإجابة الصحيحة في الفراغ — اضغط «تحقق 🎯» للتقدم")
+                st.rerun()
 
             st.markdown(f'<span class="points-chip">🎯 نقاط هذه المحاولة المتوقعة: {potential_points}</span>', unsafe_allow_html=True)
 
@@ -3360,8 +3444,8 @@ else:
                 st.rerun()
 
             if hint_lvl_current >= 1:
-                msg = step["hint"] if hint_lvl_current >= 2 else "راجع القانون/المعطى المذكور أعلاه جيداً قبل التعويض."
-                st.markdown(f'<div class="hint-box">💡 <b>تلميح:</b> {msg}</div>', unsafe_allow_html=True)
+                msg = rich_hint(step, hint_lvl_current + 1)
+                st.markdown(f'<div class="hint-box">💡 <b>شرح موجّه:</b>{msg}</div>', unsafe_allow_html=True)
                 if hint_lvl_current < 2:
                     st.caption("بحاجة لمساعدة أكبر؟ اضغط 💡 تلميح مرة أخرى.")
 
