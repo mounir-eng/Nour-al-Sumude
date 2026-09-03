@@ -47,3 +47,10 @@ body.chemistry-review-unit .top{background:linear-gradient(135deg,#0d7469,#159b8
 /* FINAL_UI_V13_CONTENT */
 :root{--navy:#173f44;--navy2:#245e65;--teal:#347d78;--gold:#f5c65a;--bg:#f8fafc;--ink:#173b3d;--muted:#71847f;--line:#dfe7e5;--shadow:0 16px 42px rgba(23,63,68,.09)}
 body{background:#f8fafc;color:#173b3d}.top{background:linear-gradient(125deg,#245e65,#3e8179 62%,#6a9679)!important}.card,.statement,.qnav{border-color:#dfe7e5!important;border-radius:19px!important;box-shadow:0 7px 22px rgba(23,63,68,.055)!important}.hero{border-radius:24px!important}.qbtn,.step-tile,.dock-panel,.formula,.solution,.law{border-radius:14px!important}.btn.primary{background:#236b78!important;border-color:#236b78!important}.step-tile.current{border-color:#347d78!important;box-shadow:0 0 0 3px rgba(52,125,120,.10)!important}.step-number{background:#e8f4f0!important}.notice{border-radius:15px!important}
+
+/* v19: شرح موجّه مفصّل */
+.hint-rich{text-align:right;line-height:1.9}
+.hint-rich>div{margin:6px 0}
+.hint-rich ol.hint-steps{margin:6px 18px 6px 0;padding:0 14px 0 0}
+.hint-rich ol.hint-steps li{margin:4px 0}
+.hint-rich .hint-eq{display:inline-block;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:1px 8px;margin-inline-start:4px}
