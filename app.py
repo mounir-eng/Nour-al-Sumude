@@ -1116,6 +1116,16 @@ st.markdown("""
         border: 2px solid #34d399; border-radius: 12px; background: #f0fdf4; color: #065f46;
     }
     .phys-calc-input:focus { outline: none; border-color: #059669; background: #fff; }
+    .phys-calc-input { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .5px; }
+    .phys-calc-pad { display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }
+    .phys-calc-top { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .phys-calc-top .phys-calc-key { flex: 0 0 auto; padding: 6px 10px; font-size: .82rem; }
+    .phys-calc-tip { font-size: .72rem; color: #64748b; direction: rtl; margin-inline-start: auto; }
+    .phys-calc-key.k-fx { background: #eef2ff; color: #3730a3; font-weight: 800; }
+    .phys-calc-key.k-mode { background: #fef3c7; color: #92400e; font-weight: 800; }
+    .phys-calc-key.k-eq { width: 100%; margin-top: 8px; }
+    .phys-calc-val { font-size: 1.6rem; font-weight: 900; direction: ltr; text-align: left; }
+    .phys-calc.calc-bad .phys-calc-input { border-color: #ef4444; background: #fef2f2; }
     .phys-calc-disp {
         background: #0f172a; color: #ffffff; border-radius: 12px;
         padding: 10px 12px; margin-bottom: 10px; text-align: right; min-height: 60px;
@@ -4715,6 +4725,7 @@ components.html(
     physCommitGuardHandler = function (e) {
       var t = e.target;
       if (!t || !t.closest) return;
+      if (t.closest('#phys-dock')) return;
       if (t.closest('input.phys-slot-input')) return;
       if (!t.closest('button')) return;
       var inp = doc.querySelector('input.phys-final-input');
@@ -5086,7 +5097,10 @@ components.html(
       }
 
       /* إعادة التركيز بعد إعادة الرسم إن كان الطالب يكتب */
-      if (wantFocusAt && Date.now() - wantFocusAt < 6000) {
+      var _cin = doc.querySelector('#phys-dock .phys-calc-input');
+      var _cbusy = !!(_cin && (_cin === doc.activeElement ||
+        (Date.now() - (+(_cin.dataset.ts || 0)) < 10000)));
+      if (wantFocusAt && Date.now() - wantFocusAt < 6000 && !_cbusy) {
         var ae = doc.activeElement;
         if (!ae || ae === doc.body || (ae.tagName && ae.tagName.toUpperCase() === 'BODY')) {
           try { inp.focus(); } catch (e3) { }
@@ -5134,94 +5148,324 @@ components.html(
     return null;
   }
 
+  /* ================= آلة حاسبة علمية v26 (إدخال من لوحة المفاتيح + محلّل تعابير) ================= */
+  var CALC_REALM = 'cr' + Date.now() + '-' + Math.round(Math.random() * 1000000);
+  var calcAns = 0;
+
+  function calcIsDigit(c) { return c >= '0' && c <= '9'; }
+  function calcIsAlpha(c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
+
+  function calcDeg(d) {
+    var pane = d ? d.querySelector('.phys-calc') : null;
+    return !pane || pane.getAttribute('data-mode') !== 'rad';
+  }
+
+  function calcNorm(t) {
+    var s = String(t == null ? '' : t);
+    s = s.split('×').join('*').split('·').join('*').split('÷').join('/');
+    s = s.split('−').join('-').split('–').join('-');
+    s = s.split('٫').join('.').split('،').join('.').split(',').join('.');
+    s = s.split('²').join('^2').split('³').join('^3');
+    s = s.split('√').join('sqrt').split('π').join('pi');
+    s = s.split('٠').join('0').split('١').join('1').split('٢').join('2').split('٣').join('3').split('٤').join('4');
+    s = s.split('٥').join('5').split('٦').join('6').split('٧').join('7').split('٨').join('8').split('٩').join('9');
+    return s;
+  }
+
+  /* محلّل تعابير رياضية بدون eval: يدعم + - * / ^ % ! ( ) والدوال */
+  function calcEvalNum(text, deg) {
+    var s = calcNorm(text), i = 0, bad = false;
+
+    function ws() { while (i < s.length && s.charAt(i) === ' ') i++; }
+
+    function fact(n) {
+      if (n < 0 || n > 170 || Math.floor(n) !== n) { bad = true; return 0; }
+      var r = 1;
+      for (var k = 2; k <= n; k++) r *= k;
+      return r;
+    }
+
+    function num() {
+      var st = i;
+      while (i < s.length && (calcIsDigit(s.charAt(i)) || s.charAt(i) === '.')) i++;
+      if (i < s.length && (s.charAt(i) === 'e' || s.charAt(i) === 'E')) {
+        var save = i;
+        i++;
+        if (i < s.length && (s.charAt(i) === '+' || s.charAt(i) === '-')) i++;
+        if (i < s.length && calcIsDigit(s.charAt(i))) { while (i < s.length && calcIsDigit(s.charAt(i))) i++; }
+        else { i = save; }
+      }
+      var v = parseFloat(s.slice(st, i));
+      if (isNaN(v)) { bad = true; return 0; }
+      return v;
+    }
+
+    function fname() {
+      var st = i;
+      while (i < s.length && calcIsAlpha(s.charAt(i))) i++;
+      return s.slice(st, i).toLowerCase();
+    }
+
+    function atom() {
+      ws();
+      var c = s.charAt(i);
+      if (c === '(') {
+        i++;
+        var v = expr();
+        ws();
+        if (s.charAt(i) === ')') i++; else bad = true;
+        return v;
+      }
+      if (calcIsDigit(c) || c === '.') return num();
+      if (calcIsAlpha(c)) {
+        var n = fname();
+        if (n === 'pi') return Math.PI;
+        if (n === 'ans') return calcAns;
+        if (n === 'e') return Math.E;
+        ws();
+        var arg;
+        if (s.charAt(i) === '(') {
+          i++;
+          arg = expr();
+          ws();
+          if (s.charAt(i) === ')') i++; else bad = true;
+        } else {
+          arg = unary();
+        }
+        if (n === 'sqrt') return Math.sqrt(arg);
+        if (n === 'abs') return Math.abs(arg);
+        if (n === 'ln') return Math.log(arg);
+        if (n === 'log') return Math.log(arg) / Math.LN10;
+        if (n === 'exp') return Math.exp(arg);
+        if (n === 'sin' || n === 'cos' || n === 'tan') {
+          var a = deg ? (arg * Math.PI / 180) : arg;
+          if (n === 'sin') return Math.sin(a);
+          if (n === 'cos') return Math.cos(a);
+          return Math.tan(a);
+        }
+        if (n === 'asin' || n === 'acos' || n === 'atan') {
+          var r = (n === 'asin') ? Math.asin(arg) : ((n === 'acos') ? Math.acos(arg) : Math.atan(arg));
+          return deg ? (r * 180 / Math.PI) : r;
+        }
+        bad = true;
+        return 0;
+      }
+      bad = true;
+      return 0;
+    }
+
+    function post() {
+      var v = atom();
+      ws();
+      while (i < s.length) {
+        var c = s.charAt(i);
+        if (c === '%') { i++; v = v / 100; ws(); continue; }
+        if (c === '!') { i++; v = fact(v); ws(); continue; }
+        break;
+      }
+      return v;
+    }
+
+    function power() {
+      var b = post();
+      ws();
+      if (s.charAt(i) === '^') { i++; return Math.pow(b, unary()); }
+      return b;
+    }
+
+    function unary() {
+      ws();
+      var c = s.charAt(i);
+      if (c === '-') { i++; return -unary(); }
+      if (c === '+') { i++; return unary(); }
+      return power();
+    }
+
+    function term() {
+      var v = unary();
+      ws();
+      while (i < s.length) {
+        var c = s.charAt(i);
+        if (c === '*') { i++; v = v * unary(); ws(); continue; }
+        if (c === '/') { i++; v = v / unary(); ws(); continue; }
+        if (calcIsDigit(c) || calcIsAlpha(c) || c === '(' || c === '.') { v = v * unary(); ws(); continue; }
+        break;
+      }
+      return v;
+    }
+
+    function expr() {
+      var v = term();
+      ws();
+      while (i < s.length) {
+        var c = s.charAt(i);
+        if (c === '+') { i++; v = v + term(); ws(); continue; }
+        if (c === '-') { i++; v = v - term(); ws(); continue; }
+        break;
+      }
+      return v;
+    }
+
+    var out = expr();
+    ws();
+    if (bad || i < s.length) return NaN;
+    return out;
+  }
+
+  function calcFmt(v) {
+    if (typeof v !== 'number' || !isFinite(v)) return '';
+    var a = Math.abs(v);
+    if (a !== 0 && (a < 0.000001 || a >= 1000000000000)) {
+      return v.toExponential(6).replace('e', ' ×10^');
+    }
+    return String(Math.round(v * 1000000000) / 1000000000);
+  }
+
   function calcHtml() {
     var keys = [
-      ['C', 'c'], ['\u232b', 'back'], ['(', '('], [')', ')'],
-      ['7', '7'], ['8', '8'], ['9', '9'], ['\u00f7', '/'],
-      ['4', '4'], ['5', '5'], ['6', '6'], ['\u00d7', '*'],
-      ['1', '1'], ['2', '2'], ['3', '3'], ['-', '-'],
-      ['0', '0'], ['.', '.'], ['\u221a', 'sqrt'], ['+', '+'],
-      ['x\u00b2', 'sq'], ['=', 'eq']
+      ['C', 'c', 'k-fn'], ['⌫', 'back', 'k-fn'], ['(', '(', ''], [')', ')', ''], ['÷', '/', ''],
+      ['sin', 'sin(', 'k-fx'], ['cos', 'cos(', 'k-fx'], ['tan', 'tan(', 'k-fx'], ['xʸ', '^', ''], ['×', '*', ''],
+      ['7', '7', ''], ['8', '8', ''], ['9', '9', ''], ['√', 'sqrt(', ''], ['−', '-', ''],
+      ['4', '4', ''], ['5', '5', ''], ['6', '6', ''], ['x²', '^2', ''], ['+', '+', ''],
+      ['1', '1', ''], ['2', '2', ''], ['3', '3', ''], ['π', 'pi', ''], ['e', 'e', ''],
+      ['0', '0', ''], ['.', '.', ''], ['ln', 'ln(', 'k-fx'], ['log', 'log(', 'k-fx'], ['%', '%', '']
     ];
-    var h = '<div class="phys-calc" data-expr="">' +
-      '<input type="text" class="phys-calc-input" inputmode="text" autocomplete="off" placeholder="\u0627\u0643\u062a\u0628 \u0627\u0644\u0639\u0645\u0644\u064a\u0629 \u062b\u0645 Enter" />' +
-      '<div class="phys-calc-disp">' +
-        '<div class="phys-calc-expr">0</div>' +
-        '<div class="phys-calc-val">0</div>' +
-      '</div><div class="phys-calc-pad">';
+    var h = '<div class="phys-calc" data-mode="deg">' +
+      '<div class="phys-calc-top">' +
+        '<button type="button" class="phys-calc-key k-mode" data-k="mode">DEG</button>' +
+        '<button type="button" class="phys-calc-key k-fx" data-k="ans">Ans</button>' +
+        '<span class="phys-calc-tip">⌨️ اكتب من لوحة المفاتيح ثم Enter</span>' +
+      '</div>' +
+      '<input type="text" class="phys-calc-input" dir="ltr" inputmode="text" autocomplete="off" spellcheck="false" placeholder="15*7 ,  sqrt(2)+sin(30)" />' +
+      '<div class="phys-calc-disp"><div class="phys-calc-val">0</div></div>' +
+      '<div class="phys-calc-pad">';
     for (var i = 0; i < keys.length; i++) {
-      var cls = 'phys-calc-key';
-      if (keys[i][1] === 'eq') cls += ' k-eq';
-      if (keys[i][1] === 'c' || keys[i][1] === 'back') cls += ' k-fn';
-      h += '<button type="button" class="' + cls + '" data-k="' + keys[i][1] + '">' + keys[i][0] + '</button>';
+      h += '<button type="button" class="phys-calc-key ' + keys[i][2] + '" data-k="' + keys[i][1] + '">' + keys[i][0] + '</button>';
     }
-    return h + '</div></div>';
+    return h + '</div><button type="button" class="phys-calc-key k-eq" data-k="eq">=</button></div>';
   }
 
-  function calcPretty(e) {
-    return String(e || '')
-      .replace(/Math\.sqrt\(/g, '\u221a(')
-      .replace(/\*\*2/g, '\u00b2')
-      .replace(/\*/g, '\u00d7')
-      .replace(/\//g, '\u00f7');
-  }
-
-  function calcEval(e) {
-    var src = String(e || '');
-    if (!src) return '';
-    if (!/^[0-9+\-*/(). ]*$/.test(src.replace(/Math\.sqrt/g, ''))) return '';
-    try {
-      var v = (new win.Function('return (' + src + ')'))();
-      if (typeof v !== 'number' || !isFinite(v)) return '';
-      return String(Math.round(v * 1000000) / 1000000);
-    } catch (err) { return ''; }
-  }
+  function calcInputEl(d) { return d ? d.querySelector('.phys-calc-input') : null; }
 
   function calcPaint(d) {
+    if (!d) return;
     var pane = d.querySelector('.phys-calc');
     if (!pane) return;
-    var e = pane.getAttribute('data-expr') || '';
-    var ex = pane.querySelector('.phys-calc-expr');
+    var inp = calcInputEl(d);
     var vl = pane.querySelector('.phys-calc-val');
-    if (ex) ex.textContent = calcPretty(e) || '0';
-    var ci = pane.querySelector('.phys-calc-input');
-    if (ci && doc.activeElement !== ci) { ci.value = calcPretty(e); }
-    if (vl) {
-      var v = calcEval(e);
-      vl.textContent = (e === '') ? '0' : (v === '' ? '\u2026' : v);
-    }
+    if (!inp || !vl) return;
+    var txt = String(inp.value || '');
+    if (!txt.length) { vl.textContent = '0'; return; }
+    var out = calcFmt(calcEvalNum(txt, calcDeg(d)));
+    vl.textContent = (out === '') ? '…' : out;
+  }
+
+  function calcInsert(d, txt) {
+    var inp = calcInputEl(d);
+    if (!inp) return;
+    var v = String(inp.value || '');
+    var a = (typeof inp.selectionStart === 'number') ? inp.selectionStart : v.length;
+    var b = (typeof inp.selectionEnd === 'number') ? inp.selectionEnd : v.length;
+    inp.value = v.slice(0, a) + txt + v.slice(b);
+    var p = a + txt.length;
+    inp.dataset.ts = String(Date.now());
+    try { inp.focus(); inp.setSelectionRange(p, p); } catch (e) { }
+    calcPaint(d);
   }
 
   function calcKey(d, k) {
+    if (!d || k == null) return;
     var pane = d.querySelector('.phys-calc');
     if (!pane) return;
-    var e = pane.getAttribute('data-expr') || '';
-    if (k === 'c') { e = ''; }
-    else if (k === 'back') {
-      if (/Math\.sqrt\($/.test(e)) e = e.slice(0, -10);
-      else if (/\*\*2$/.test(e)) e = e.slice(0, -3);
-      else e = e.slice(0, -1);
+    var inp = calcInputEl(d);
+    if (!inp) return;
+    inp.dataset.ts = String(Date.now());
+    if (k === 'mode') {
+      var rad = pane.getAttribute('data-mode') === 'rad';
+      pane.setAttribute('data-mode', rad ? 'deg' : 'rad');
+      var mb = pane.querySelector('.k-mode');
+      if (mb) mb.textContent = rad ? 'DEG' : 'RAD';
+      calcPaint(d);
+      return;
     }
-    else if (k === 'sqrt' || k === 'sq') {
-      var base = (e === '') ? (pane.getAttribute('data-last') || '') : calcEval(e);
-      var bv = parseFloat(base);
-      if (base !== '' && !isNaN(bv)) {
-        var out = (k === 'sqrt') ? Math.sqrt(bv) : (bv * bv);
-        if (isFinite(out)) {
-          e = String(Math.round(out * 1000000) / 1000000);
-          pane.setAttribute('data-last', e);
-        }
-      } else {
-        e += (k === 'sqrt') ? 'Math.sqrt(' : '**2';
+    if (k === 'c') {
+      inp.value = '';
+      try { inp.focus(); } catch (e) { }
+      calcPaint(d);
+      return;
+    }
+    if (k === 'back') {
+      var v = String(inp.value || '');
+      var a = (typeof inp.selectionStart === 'number') ? inp.selectionStart : v.length;
+      var b = (typeof inp.selectionEnd === 'number') ? inp.selectionEnd : v.length;
+      if (a !== b) { inp.value = v.slice(0, a) + v.slice(b); }
+      else if (a > 0) { inp.value = v.slice(0, a - 1) + v.slice(a); a = a - 1; }
+      try { inp.focus(); inp.setSelectionRange(a, a); } catch (e) { }
+      calcPaint(d);
+      return;
+    }
+    if (k === 'ans') { calcInsert(d, 'Ans'); return; }
+    if (k === 'eq') {
+      var val = calcEvalNum(String(inp.value || ''), calcDeg(d));
+      var out = calcFmt(val);
+      if (out === '') {
+        pane.classList.add('calc-bad');
+        win.setTimeout(function () { pane.classList.remove('calc-bad'); }, 600);
+        return;
       }
+      calcAns = val;
+      inp.value = out;
+      try { inp.focus(); inp.setSelectionRange(out.length, out.length); } catch (e) { }
+      calcPaint(d);
+      return;
     }
-    else if (k === 'eq') {
-      var v = calcEval(e);
-      if (v !== '') { e = v; pane.setAttribute('data-last', v); }
-    }
-    else { e += k; }
-    pane.setAttribute('data-expr', e);
-    calcPaint(d);
+    calcInsert(d, k);
+  }
+
+  /* إعادة ربط الأحداث عند كل إعادة رسم (مستمعو الإطار القديم يموتون) */
+  function wireDock(d) {
+    if (!d || d.getAttribute('data-wired') === CALC_REALM) return;
+    d.setAttribute('data-wired', CALC_REALM);
+    d.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var w = t.closest('.phys-ic-wrap');
+      if (w) {
+        e.preventDefault();
+        e.stopPropagation();
+        dockToggle(w.getAttribute('data-kind'));
+        return;
+      }
+      var b = t.closest('.phys-calc-key');
+      if (b) {
+        e.preventDefault();
+        e.stopPropagation();
+        calcKey(d, b.getAttribute('data-k'));
+      }
+    }, true);
+    d.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains('phys-calc-input')) return;
+      t.dataset.ts = String(Date.now());
+      e.stopPropagation();
+      calcPaint(d);
+    }, true);
+    d.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains('phys-calc-input')) return;
+      t.dataset.ts = String(Date.now());
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); calcKey(d, 'eq'); }
+      else if (e.key === 'Escape') { e.preventDefault(); calcKey(d, 'c'); }
+    }, true);
+    d.addEventListener('keyup', function (e) {
+      var t = e.target;
+      if (t && t.classList && t.classList.contains('phys-calc-input')) e.stopPropagation();
+    }, true);
+    d.addEventListener('mousedown', function (e) {
+      var t = e.target;
+      if (t && t.classList && t.classList.contains('phys-calc-input')) e.stopPropagation();
+    }, true);
   }
 
   function paneHtml(kind) {
@@ -5236,7 +5480,7 @@ components.html(
 
   function dockBuild() {
     var d = doc.getElementById(DOCK_ID);
-    if (d) return d;
+    if (d) { wireDock(d); return d; }
     d = doc.createElement('div');
     d.id = DOCK_ID;
     d.innerHTML =
@@ -5256,65 +5500,8 @@ components.html(
         '</div>' +
       '</div>';
     doc.body.appendChild(d);
-    if (!doc.__physDockDelegated) {
-      doc.__physDockDelegated = 1;
-      doc.addEventListener('click', function (ev) {
-        var tt = ev.target;
-        if (!tt || !tt.closest) return;
-        var dk = doc.getElementById(DOCK_ID);
-        if (!dk) return;
-        var w2 = tt.closest('.phys-ic-wrap');
-        if (w2 && dk.contains(w2)) {
-          ev.preventDefault(); ev.stopPropagation();
-          dockToggle(w2.getAttribute('data-kind'));
-          return;
-        }
-        var kb = tt.closest('.phys-calc-key');
-        if (kb && dk.contains(kb)) {
-          ev.preventDefault(); ev.stopPropagation();
-          calcKey(dk, kb.getAttribute('data-k'));
-        }
-      }, true);
-    }
-    var wraps = d.querySelectorAll('.phys-ic-wrap'), wi;
-    for (wi = 0; wi < wraps.length; wi++) {
-      (function (el) {
-        el.addEventListener('click', function (e) {
-          e.preventDefault(); e.stopPropagation();
-          dockToggle(el.getAttribute('data-kind'));
-        });
-      })(wraps[wi]);
-    }
-    d.addEventListener('click', function (e) {
-      var t = e.target;
-      var b = (t && t.closest) ? t.closest('.phys-calc-key') : null;
-      if (!b) return;
-      e.preventDefault(); e.stopPropagation();
-      calcKey(d, b.getAttribute('data-k'));
-    });
-    d.addEventListener('input', function (e) {
-      var t = e.target;
-      if (!t || !t.classList || !t.classList.contains('phys-calc-input')) return;
-      var pane = d.querySelector('.phys-calc');
-      if (!pane) return;
-      var raw = String(t.value || '')
-        .replace(/\u00d7/g, '*').replace(/\u00f7/g, '/')
-        .replace(/,/g, '.').replace(/\u221a/g, 'Math.sqrt(')
-        .replace(/\u00b2/g, '**2');
-      pane.setAttribute('data-expr', raw);
-      calcPaint(d);
-    });
-    d.addEventListener('keydown', function (e) {
-      var t = e.target;
-      if (!t || !t.classList || !t.classList.contains('phys-calc-input')) return;
-      e.stopPropagation();
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        calcKey(d, 'eq');
-        var pn = d.querySelector('.phys-calc');
-        if (pn) { t.value = calcPretty(pn.getAttribute('data-expr') || ''); }
-      }
-    }, true);
+    wireDock(d);
+
     var cur = dockRead();
     if (cur !== 'none') {
       var pane = d.querySelector('.phys-pane');
