@@ -50,9 +50,10 @@ function microPracticeHtml(step,done){
  const rows=step.micro||[];if(!rows.length)return '';
  return `<section class="micro-practice"><div class="micro-practice-head">🧩 املأ فراغات الخطوات بالترتيب</div><p>اكتب إجابة كل سطر حتى السطر الأخير، ثم اضغط «تحقق».</p>${rows.map((row,i)=>{const p=rowParts(row);return `<div class="micro-practice-row" data-micro-row="${i}"><span class="micro-practice-index">${i+1}</span><div><div class="micro-practice-desc">${esc(p.desc)}</div>${p.eq?`<div class="micro-practice-eq">${p.target?microEquationInput(p.eq,i):mathHtml(p.eq)}</div>`:''}</div></div>`}).join('')}</section>`
 }
+function commKey(v,cs){let t=workNorm(v);if(!cs)t=t.toLowerCase();if(/[\u0600-\u06FF]/.test(t))return t;return t.split('=').map(s=>{if(s.length>14||s.includes('/')||s.includes('-'))return s;return s.split('+').map(x=>{const fs=x.split('*').filter(Boolean);return (fs.length===1&&!/[0-9]/.test(fs[0]))?fs[0].split('').sort().join(''):fs.sort().join('*')}).sort().join('+')}).sort().join('=')}
 function microValueMatches(value,target,caseSensitive){
  const alternatives=String(target).split('|');
- for(const candidate of alternatives){const a=num(value),b=num(candidate);if(a!==null&&b!==null&&close(a,b,.001))return true;let got=workNorm(value),want=workNorm(candidate);if(!caseSensitive){got=got.toLowerCase();want=want.toLowerCase()}if(got===want||got.replace(/\*/g,'')===want.replace(/\*/g,''))return true}
+ for(const candidate of alternatives){if(commKey(value,caseSensitive)===commKey(candidate,caseSensitive))return true;const a=num(value),b=num(candidate);if(a!==null&&b!==null&&close(a,b,.001))return true;let got=workNorm(value),want=workNorm(candidate);if(!caseSensitive){got=got.toLowerCase();want=want.toLowerCase()}if(got===want||got.replace(/\*/g,'')===want.replace(/\*/g,''))return true}
  return false
 }
 function validateMicroPractice(step){
@@ -103,10 +104,10 @@ function formulaInteractive(step,done){
  out+=`<div class="result-row"><b>${esc(step.result_label||'الناتج')}</b><input id="result" inputmode="decimal" ${done?'disabled':''} placeholder="القيمة النهائية"></div>`;
  return out
 }
-function formulaProof(step,done){if(done)return '';if(step.micro_only||step.choices)return `${microPracticeHtml(step,false)}${choicesHtml(step)}<div class="notice">✅ أكمل فراغات الخطوات أعلاه بالترتيب ثم اضغط «تحقق».</div>`;return `${microPracticeHtml(step,false)}${guidedWorkHtml(step.guided_work,false)}<div class="answer-label final-label">${esc('الخطوة الأخيرة — '+(step.label||'اكتب النتيجة النهائية:'))}</div><div class="formula-scroll"><div class="formula proof-input"><span>${mathHtml(step.prefix||'')}</span><input id="proof" placeholder="اكتب الإجابة هنا"><span>${mathHtml(step.suffix||'')}</span></div></div><div class="proof-preview">${mathHtml(maskAnswer(step.latex_preview||'')||'أكمل العلاقة الرمزية')}</div>`}
+function formulaProof(step,done){if(done)return '';if(step.choices&&step.choices.length)return choicesHtml(step);if(step.micro_only)return `${microPracticeHtml(step,false)}${choicesHtml(step)}<div class="notice">✅ أكمل فراغات الخطوات أعلاه بالترتيب ثم اضغط «تحقق».</div>`;return `${microPracticeHtml(step,false)}${guidedWorkHtml(step.guided_work,false)}<div class="answer-label final-label">${esc('الخطوة الأخيرة — '+(step.label||'اكتب النتيجة النهائية:'))}</div><div class="formula-scroll"><div class="formula proof-input"><span>${mathHtml(step.prefix||'')}</span><input id="proof" placeholder="اكتب الإجابة هنا"><span>${mathHtml(step.suffix||'')}</span></div></div><div class="proof-preview">${mathHtml(maskAnswer(step.latex_preview||'')||'أكمل العلاقة الرمزية')}</div>`}
 function checkStep(q,si,step){
  const k=key(q,si);
- if(step.micro_only||step.choices){if(!validateMicroPractice(step))return;if((step.choices||[]).length){const sel=document.querySelector('input[name="mcq"]:checked');if(!sel)return toast('اختر التعليل الصحيح أولاً');if(+sel.value!==(step.answer_index||0))return toast('التعليل قريب لكنه غير دقيق — أعد المحاولة')}state.done[k]=true;save();toast('أحسنت — اكتملت الخطوة');render();return}
+ if(step.micro_only||step.choices){if(!(step.choices||[]).length&&!validateMicroPractice(step))return;if((step.choices||[]).length){const sel=document.querySelector('input[name="mcq"]:checked');if(!sel)return toast('اختر التعليل الصحيح أولاً');if(+sel.value!==(step.answer_index||0))return toast('التعليل قريب لكنه غير دقيق — أعد المحاولة')}state.done[k]=true;save();toast('أحسنت — اكتملت الخطوة');render();return}
  if(step.type&&!validateMicroPractice(step))return;
  if(step.guided_work){
   const w=$('#guidedWork')?.value||'';
