@@ -1,51 +1,11 @@
-رفع التعديلات إلى GitHub لتظهر على موقعك في Streamlit Cloud
-===================================================================
-الملفات المطلوب رفعها (8 ملفات، بمساراتها كما هي):
-  pages/physics_textbook_exercises.py
-  static/pwa/unit-physics-textbook-data.js
-  static/pwa/physics-textbook.html
-  static/pwa/app.js
-  static/pwa/physics-hub.html
-  unit_packs/physics12_unit1_complete_offline.zip
-  unit_packs/student_samed_pwa_offline.zip
-  unit_packs/OFFLINE_PACKS_V18_SHA256.txt
+طريقة الرفع على GitHub (نفس الخطوات السابقة)
+=========================================
 
-─────────────────────────────────────────────────────────────
-الطريقة أ — من متصفّح GitHub دون أي برامج (الأسهل)
-─────────────────────────────────────────────────────────────
-ملاحظة مهمة: ارفع ملفات كل مجلّد وهو مفتوح داخل المجلّد نفسه، لأن الرفع
-بالسحب لا يحترم المسارات تلقائيًا إلا إذا سحبت المجلّدات كاملة.
-
-1. افتح مستودعك (repository) على github.com وتأكد أنك على الفرع المنشور (main عادةً).
-2. اضغط Add file → Upload files.
-3. اسحب المجلّدات الثلاثة من هذه الحزمة معًا (pages · static · unit_packs)
-   مباشرةً في نافذة الرفع. GitHub يحتفز بالمسارات ويستبدل الملفات القديمة.
-4. في خانة Commit changes اكتب:
-      حذف تمريني الكتاب 1 و 2 وتبسيط خطوات التمرين 3 (وحدة الزخم)
-5. اضغط Commit changes.
-6. افتح share.streamlit.io → ستجد التطبيق يُعاد نشره تلقائيًا بعد دقيقة أو دقيقتين.
-   إن لم يتحدّث: من قائمة التطبيق اختر Reboot app.
-
-─────────────────────────────────────────────────────────────
-الطريقة ب — من جهازك بـ Git (أسرع للمرات القادمة)
-─────────────────────────────────────────────────────────────
-1. افتح مجلد المشروع عندك (نسخة المستودع المحلية)، وإن لم تكن موجودة:
-      git clone https://github.com/<اسمك>/<المستودع>.git
-      cd <المستودع>
-2. انسخ محتوى مجلّدات هذه الحزمة (pages · static · unit_packs) فوق مجلّدات المشروع
-   مع الاستبدال، أو شغّل الملف push_changes.sh كما هو موضح داخله.
-3. ثم:
-      git add pages/physics_textbook_exercises.py static/pwa unit_packs
-      git commit -m "حذف تمريني الكتاب 1 و 2 وتبسيط خطوات التمرين 3"
-      git push origin main
-
-─────────────────────────────────────────────────────────────
-تأكيدات مهمة بعد النشر
-─────────────────────────────────────────────────────────────
-· تأكد أن ملف .gitignore في المستودع لا يتجاهل *.zip؛ وإلا لن تُرفع حزم unit_packs.
-  (للتجاوز: git add -f unit_packs/*.zip)
-· صفحة الـ Streamlit تُحدّث فورًا بعد النشر. أما نسخة PWA فتحتاج مسح الكاش
-  عند المستخدمين (رفعنا version إلى 1.1.0)؛ ولدفع التحديث للجميع زد رقم الإصدار
-  داخل static/pwa/service-worker.js (مثلاً CACHE = 'samed-v18-2').
-· لا ترفع ملف .streamlit/secrets.toml أو أي مفاتيح خاصة إلى GitHub.
-· لو أخطأت الرفع، يمكنك الرجوع من تبويب Commits في GitHub واختيار Revert.
+1) افتح: https://github.com/mounir-eng/Nour-al-Sumude/upload/main
+2) اسحب مجلّدي pages و static و unit_packs وملف app.py من هذا الملف المضغوط بعد فكّه.
+   (حافِط على المسارات كما هي: pages/... و static/pwa/... و unit_packs/...)
+3) مهم جداً: انزل أسفل الصفحة واضغط على الزر الأخضر Commit changes
+   (إن لم تضغطه لن يتم حفظ أي شيء — وهذا ما حدث من قبل).
+4) تأكد من الرفع: https://github.com/mounir-eng/Nour-al-Sumude/commits/main
+5) في Streamlit: Manage app → Reboot app.
+6) في المتصفح: Ctrl + Shift + R (أو إعادة تحميل قوية) لتحديث الكاش.
