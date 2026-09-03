@@ -65,7 +65,7 @@ body{background:#f8fafc;color:#173b3d}.top{background:linear-gradient(125deg,#24
 
 /* v21: اختيار التعليل الصحيح */
 .mcq-box{margin:10px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;text-align:right}
-.mcq-box b{display:block;margin-bottom:8px;color:#0f172a}
-.mcq-opt{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;margin:6px 0;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;cursor:pointer;line-height:1.8}
+.mcq-box b{display:block;margin-bottom:8px;color:#0f172a;font-size:1.1rem}
+.mcq-opt{font-size:1.15rem;font-weight:600;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;margin:6px 0;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;cursor:pointer;line-height:1.8}
 .mcq-opt:hover{border-color:#93c5fd;background:#eff6ff}
-.mcq-opt input{margin-top:6px;flex:none}
+.mcq-opt input{margin-top:7px;flex:none;transform:scale(1.25)}

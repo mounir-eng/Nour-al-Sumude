@@ -104,10 +104,10 @@ function formulaInteractive(step,done){
  out+=`<div class="result-row"><b>${esc(step.result_label||'الناتج')}</b><input id="result" inputmode="decimal" ${done?'disabled':''} placeholder="القيمة النهائية"></div>`;
  return out
 }
-function formulaProof(step,done){if(done)return '';if(step.choices&&step.choices.length)return choicesHtml(step);if(step.micro_only)return `${microPracticeHtml(step,false)}${choicesHtml(step)}<div class="notice">✅ أكمل فراغات الخطوات أعلاه بالترتيب ثم اضغط «تحقق».</div>`;return `${microPracticeHtml(step,false)}${guidedWorkHtml(step.guided_work,false)}<div class="answer-label final-label">${esc('الخطوة الأخيرة — '+(step.label||'اكتب النتيجة النهائية:'))}</div><div class="formula-scroll"><div class="formula proof-input"><span>${mathHtml(step.prefix||'')}</span><input id="proof" placeholder="اكتب الإجابة هنا"><span>${mathHtml(step.suffix||'')}</span></div></div><div class="proof-preview">${mathHtml(maskAnswer(step.latex_preview||'')||'أكمل العلاقة الرمزية')}</div>`}
+function formulaProof(step,done){if(done)return '';if(step.choices&&step.choices.length)return choicesHtml(step);if(step.micro_only||(step.micro&&step.micro.length))return `${microPracticeHtml(step,false)}${choicesHtml(step)}<div class="notice">✅ أكمل فراغات الخطوات أعلاه بالترتيب ثم اضغط «تحقق».</div>`;return `${microPracticeHtml(step,false)}${guidedWorkHtml(step.guided_work,false)}<div class="answer-label final-label">${esc('الخطوة الأخيرة — '+(step.label||'اكتب النتيجة النهائية:'))}</div><div class="formula-scroll"><div class="formula proof-input"><span>${mathHtml(step.prefix||'')}</span><input id="proof" placeholder="اكتب الإجابة هنا"><span>${mathHtml(step.suffix||'')}</span></div></div><div class="proof-preview">${mathHtml(maskAnswer(step.latex_preview||'')||'أكمل العلاقة الرمزية')}</div>`}
 function checkStep(q,si,step){
  const k=key(q,si);
- if(step.micro_only||step.choices){if(!(step.choices||[]).length&&!validateMicroPractice(step))return;if((step.choices||[]).length){const sel=document.querySelector('input[name="mcq"]:checked');if(!sel)return toast('اختر التعليل الصحيح أولاً');if(+sel.value!==(step.answer_index||0))return toast('التعليل قريب لكنه غير دقيق — أعد المحاولة')}state.done[k]=true;save();toast('أحسنت — اكتملت الخطوة');render();return}
+ if(step.micro_only||step.choices||(step.micro&&step.micro.length)){if(!(step.choices||[]).length&&!validateMicroPractice(step))return;if((step.choices||[]).length){const sel=document.querySelector('input[name="mcq"]:checked');if(!sel)return toast('اختر التعليل الصحيح أولاً');if(+sel.value!==(step.answer_index||0))return toast('التعليل قريب لكنه غير دقيق — أعد المحاولة')}state.done[k]=true;save();toast('أحسنت — اكتملت الخطوة');render();return}
  if(step.type&&!validateMicroPractice(step))return;
  if(step.guided_work){
   const w=$('#guidedWork')?.value||'';
@@ -141,7 +141,19 @@ function checkStep(q,si,step){
 }
 // PHYSICS_BOOK_FIGURES_V1
 function questionFigure(q){if(!q.figure)return '';return `<figure class="question-figure"><img src="${attr(q.figure)}" alt="${attr(q.figure_caption||q.title||'رسم التمرين')}">${q.figure_caption?`<figcaption>${esc(q.figure_caption)}</figcaption>`:''}</figure>`}
+let autoNextBusy=false;
+function autoNextQuestion(){
+ if(autoNextBusy)return;
+ const q=UNIT.questions[state.q];if(!q)return;
+ const all=q.steps.every((s,i)=>!!state.done[key(q,i)]);
+ if(!all)return;
+ if(state.q>=UNIT.questions.length-1)return;
+ autoNextBusy=true;
+ toast('🎉 أحسنت! ننتقل إلى التمرين التالي…');
+ setTimeout(()=>{autoNextBusy=false;state.q=state.q+1;save();render()},1600);
+}
 function render(){
+ setTimeout(autoNextQuestion,0);
  const q=UNIT.questions[state.q],si=currentIndex(q),step=q.steps[si],k=key(q,si),done=!!state.done[k];
  renderNav();renderStepStrip(q,si);
  $('#statement').innerHTML=`<small><span class="type-chip ${q.type==='proof'?'proof':'interactive'}">${q.type==='proof'?'إثبات رمزي':'تمرين تفاعلي'}</span></small><h2>${esc(q.title)}</h2><p>${proseHtml(q.text)}</p>${questionFigure(q)}${qDone(q)&&q.conclusion?`<div class="solution">${proseHtml(q.conclusion)}</div>`:''}`;
