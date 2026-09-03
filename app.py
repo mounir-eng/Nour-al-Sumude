@@ -2911,6 +2911,13 @@ def result_html(result_text, label: str = "✅ النتيجة", pre_html: bool =
     )
 
 
+SYMBOL_LIBRARY = [
+    "Δ", "ΔP", "Δt", "θ", "π", "×", "÷", "√", "²",
+    "³", "≈", "±", "→", "←", "°", "m/s", "m/s²", "kg",
+    "N", "N·s", "kg·m/s", "J", "−", "⁄", "⬜", "⌫", "مسح",
+]
+
+
 def _mask_ans(txt):
     """يخفي طرف المعادلة الأيمن (الإجابة) حتى لا تُعرض قبل أن يكتبها الطالب."""
     t = str(txt or "")
@@ -3879,18 +3886,47 @@ else:
             hint_lvl_current = st.session_state["hint_level"].get(step_key, 0)
             potential_points = calc_points(attempts_so_far + 1, hint_lvl_current)
 
-            with st.container(key="formula_proof_row"):
-                fc1, fc2, fc3 = st.columns([2, 1.3, 2])
-                with fc1:
-                    st.markdown(f"<div class='formula-text'>{eq_frag(step['prefix'])}</div>", unsafe_allow_html=True)
-                with fc2:
-                    user_val = st.text_input(
-                        "input_field", key=f"proofinput_{step_key}",
-                        value=(str(step["target"]) if _revealed else ""),
-                        placeholder="أدخل الإجابة...", label_visibility="collapsed"
-                    )
-                with fc3:
-                    st.markdown(f"<div class='formula-text'>{eq_frag(step['suffix'])}</div>", unsafe_allow_html=True)
+            _micro_only = bool(step.get("micro_only"))
+            _sym_key = f"symbuf_{step_key}"
+            _pending = st.session_state.get(_sym_key)
+            user_val = ""
+            if _micro_only:
+                st.markdown("<div class='note-box'>✅ أكمل فراغات الخطوات أعلاه بالترتيب، ثم اضغط «تحقق 🎯» للانتقال للخطوة التالية.</div>", unsafe_allow_html=True)
+            else:
+                if _pending is not None:
+                    st.session_state.pop(f"proofinput_{step_key}", None)
+                with st.container(key="formula_proof_row"):
+                    fc1, fc2, fc3 = st.columns([2, 1.3, 2])
+                    with fc1:
+                        st.markdown(f"<div class='formula-text'>{eq_frag(step['prefix'])}</div>", unsafe_allow_html=True)
+                    with fc2:
+                        user_val = st.text_input(
+                            "input_field", key=f"proofinput_{step_key}",
+                            value=(_pending if _pending is not None else (str(step["target"]) if _revealed else "")),
+                            placeholder="اكتب الإجابة أو استعمل مكتبة الرموز...", label_visibility="collapsed"
+                        )
+                    with fc3:
+                        st.markdown(f"<div class='formula-text'>{eq_frag(step['suffix'])}</div>", unsafe_allow_html=True)
+                st.session_state.pop(_sym_key, None)
+                st.markdown("<div style='text-align:right;color:#475569;font-weight:700;margin:8px 0 2px'>🔤 مكتبة الرموز — اضغط الرمز ليُضاف إلى إجابتك</div>", unsafe_allow_html=True)
+                for _r in range(0, len(SYMBOL_LIBRARY), 9):
+                    _chunk = SYMBOL_LIBRARY[_r:_r + 9]
+                    _scols = st.columns(len(_chunk))
+                    for _k2, _sym in enumerate(_chunk):
+                        with _scols[_k2]:
+                            if st.button(_sym, key=f"sym_{step_key}_{_r + _k2}", use_container_width=True):
+                                _cur = st.session_state.get(f"proofinput_{step_key}", "") or ""
+                                if _sym == "⌫":
+                                    _new_val = _cur[:-1]
+                                elif _sym == "مسح":
+                                    _new_val = ""
+                                elif _sym == "⬜":
+                                    _new_val = _cur + " "
+                                else:
+                                    _new_val = _cur + _sym
+                                st.session_state[_sym_key] = _new_val
+                                st.session_state.pop(f"proofinput_{step_key}", None)
+                                st.rerun()
 
             btn_col, hint_col, rev_col = st.columns(3)
             with btn_col:
@@ -3926,7 +3962,13 @@ else:
                 st.session_state["attempts"][step_key] = st.session_state["attempts"].get(step_key, 0) + 1
                 attempts_now = st.session_state["attempts"][step_key]
 
-                if not user_val or user_val.strip() == "":
+                if _micro_only:
+                    pts = calc_points(attempts_now, hint_lvl_current)
+                    st.session_state["total_xp"] += pts
+                    st.success(f"{random.choice(SUCCESS_PHRASES)} أحسنت — اكتملت خطوات التعليل! (+{pts} XP)")
+                    st.session_state[step_state_key] = s_num + 1
+                    st.rerun()
+                elif not user_val or user_val.strip() == "":
                     st.warning("الرجاء كتابة الإجابة أولاً داخل الفراغ!")
                 else:
                     is_correct = False
