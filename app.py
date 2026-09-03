@@ -3539,9 +3539,13 @@ def display_title(item):
 with st.container(key="exercise_controls"):
     col_sel, col_toggle = st.columns([3, 1])
     with col_sel:
+        _all_titles = [display_title(item) for item in questions_db]
+        _goto = st.session_state.pop("physbook_goto_title", None)
+        if _goto in _all_titles:
+            st.session_state["physbook_qpick"] = _goto
         selected_title = st.selectbox(
             "📌 اختر التمرين المراد حله تفاعلياً:",
-            [display_title(item) for item in questions_db]
+            _all_titles, key="physbook_qpick"
         )
     with col_toggle:
         explain_mode = st.toggle("🔍 شرح مبسط", value=False)
@@ -3667,38 +3671,41 @@ if qtype == "interactive":
             if step.get("micro"):
                 st.markdown(micro_html(step, final_mode="none", qid=qid, reveal=_revealed), unsafe_allow_html=True)
                 _mn = len(step["micro"])
+            _steps_only = bool(step.get("micro"))
             user_blank_inputs = []
-            with st.container(key="formula_blanks_row"):
-                st.markdown(
-                    f'<div class="live-say"><span class="micro-num">{_mn + 1}</span>'
-                    'عوّض المعطيات في العبارة العامة (من اليسار لليمين):</div>',
-                    unsafe_allow_html=True,
-                )
-                cols = st.columns(1 + len(step["blanks"]) * 2)
-                cols[0].markdown(f"<div class='formula-text'>{eq_frag(step['prefix'])}</div>", unsafe_allow_html=True)
-                col_idx = 1
-                for bidx, b in enumerate(step["blanks"]):
-                    with cols[col_idx]:
-                        val = st.number_input(
-                            label=b["label"], key=f"blank_{qid}_{s_num}_{bidx}",
-                            value=(float(b["target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
-                        )
-                        user_blank_inputs.append(val)
-                    col_idx += 1
-                    with cols[col_idx]:
-                        st.markdown(f"<div class='formula-text'>{eq_frag(b['suffix'])}</div>", unsafe_allow_html=True)
-                    col_idx += 1
+            user_root_val = None
+            user_result = None
+            if not _steps_only:
+                with st.container(key="formula_blanks_row"):
+                    st.markdown(
+                        f'<div class="live-say"><span class="micro-num">{_mn + 1}</span>'
+                        'عوّض المعطيات في العبارة العامة (من اليسار لليمين):</div>',
+                        unsafe_allow_html=True,
+                    )
+                    cols = st.columns(1 + len(step["blanks"]) * 2)
+                    cols[0].markdown(f"<div class='formula-text'>{eq_frag(step['prefix'])}</div>", unsafe_allow_html=True)
+                    col_idx = 1
+                    for bidx, b in enumerate(step["blanks"]):
+                        with cols[col_idx]:
+                            val = st.number_input(
+                                label=b["label"], key=f"blank_{qid}_{s_num}_{bidx}",
+                                value=(float(b["target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
+                            )
+                            user_blank_inputs.append(val)
+                        col_idx += 1
+                        with cols[col_idx]:
+                            st.markdown(f"<div class='formula-text'>{eq_frag(b['suffix'])}</div>", unsafe_allow_html=True)
+                        col_idx += 1
 
             _mn2 = 0
             if step.get("micro2"):
                 st.markdown(
-                    micro_html(step, final_mode="none", field="micro2", start=_mn + 1, qid=qid, reveal=_revealed),
+                    micro_html(step, final_mode="none", field="micro2", start=(_mn if _steps_only else _mn + 1), qid=qid, reveal=_revealed),
                     unsafe_allow_html=True,
                 )
                 _mn2 = len(step["micro2"])
 
-            user_root_val = None
-            if step.get("has_root"):
+            if step.get("has_root") and not _steps_only:
                 with st.container(key="formula_root_row"):
                     st.markdown(
                         f'<div class="live-say"><span class="micro-num">{_mn + _mn2 + 2}</span>'
@@ -3716,25 +3723,29 @@ if qtype == "interactive":
                     with r_c3:
                         st.markdown(f"<div class='formula-text'>{eq_frag(step['root_suffix'])}</div>", unsafe_allow_html=True)
 
-            _nres = _mn + _mn2 + 2 + (1 if step.get("has_root") else 0)
-            _rlabel = step["result_label"]
-            _rsym, _runit = result_eq_parts(_rlabel)
-            _rsay = _rlabel.strip().rstrip(":").strip()
-            with st.container(key="formula_res_row"):
-                st.markdown(
-                    f'<div class="live-say"><span class="micro-num">{_nres}</span>{_rsay}</div>',
-                    unsafe_allow_html=True,
-                )
-                rc1, rc2, rc3 = st.columns(3)
-                with rc1:
-                    st.markdown(f"<div class='formula-text'>{eq_frag(_rsym + ' =')}</div>", unsafe_allow_html=True)
-                with rc2:
-                    user_result = st.number_input(
-                        _rlabel, key=f"res_{qid}_{s_num}",
-                        value=(float(step["result_target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
+            if not _steps_only:
+                _nres = _mn + _mn2 + 2 + (1 if step.get("has_root") else 0)
+                _rlabel = step["result_label"]
+                _rsym, _runit = result_eq_parts(_rlabel)
+                _rsay = _rlabel.strip().rstrip(":").strip()
+                with st.container(key="formula_res_row"):
+                    st.markdown(
+                        f'<div class="live-say"><span class="micro-num">{_nres}</span>{_rsay}</div>',
+                        unsafe_allow_html=True,
                     )
-                with rc3:
-                    st.markdown(f"<div class='formula-text'>{eq_frag(_runit)}</div>", unsafe_allow_html=True)
+                    rc1, rc2, rc3 = st.columns(3)
+                    with rc1:
+                        st.markdown(f"<div class='formula-text'>{eq_frag(_rsym + ' =')}</div>", unsafe_allow_html=True)
+                    with rc2:
+                        user_result = st.number_input(
+                            _rlabel, key=f"res_{qid}_{s_num}",
+                            value=(float(step["result_target"]) if _revealed else None), placeholder="..", label_visibility="collapsed"
+                        )
+                    with rc3:
+                        st.markdown(f"<div class='formula-text'>{eq_frag(_runit)}</div>", unsafe_allow_html=True)
+
+            else:
+                st.markdown("<div class='note-box'>✅ أكمل فراغات الخطوات أعلاه بالترتيب، ثم اضغط «تحقق 🎯» للانتقال للخطوة التالية.</div>", unsafe_allow_html=True)
 
             with st.container(key="step_actions_row"):
                 _bc1, _bc2, _bc3 = st.columns(3)
@@ -3774,6 +3785,13 @@ if qtype == "interactive":
             if check_btn:
                 st.session_state["attempts"][step_key] = st.session_state["attempts"].get(step_key, 0) + 1
                 attempts_now = st.session_state["attempts"][step_key]
+
+                if _steps_only:
+                    pts = calc_points(attempts_now, hint_lvl_current)
+                    st.session_state["physbook_total_xp"] += pts
+                    st.success(f"{random.choice(SUCCESS_PHRASES)} أحسنت — اكتملت خطوات الحل! (+{pts} XP)")
+                    st.session_state[step_state_key] = s_num + 1
+                    st.rerun()
 
                 blanks_correct = True
                 for u_val, b_item in zip(user_blank_inputs, step["blanks"]):
@@ -3829,6 +3847,12 @@ if qtype == "interactive":
             if len(st.session_state["completed_questions"]) == TOTAL_QUESTIONS:
                 award_badge("🎓 إتقان كامل لجميع التمارين")
             st.balloons()
+            _idx_now = next((_i for _i, _it in enumerate(questions_db) if _it["id"] == qid), None)
+            if _idx_now is not None and _idx_now + 1 < len(questions_db):
+                st.session_state["physbook_goto_title"] = display_title(questions_db[_idx_now + 1])
+                st.toast("🎉 أحسنت! ننتقل إلى التمرين التالي…")
+                time.sleep(1.8)
+                st.rerun()
 
         dur = st.session_state["time_spent"].get(qid, 0)
         st.success(f"🎉 ممتاز جداً! أتقنت هذا التمرين خلال {fmt_time(dur)} (+15 XP مكافأة إنجاز).")
@@ -3912,7 +3936,7 @@ else:
 
             _revealed = st.session_state.setdefault("revealed", {}).get(step_key, False)
             _plabel = step.get("label", "")
-            _fmode = "none" if step.get("micro_only") else "preview"
+            _fmode = "none" if (step.get("micro_only") or step.get("micro")) else "preview"
             if _only_choices:
                 pass
             elif step.get("micro"):
@@ -3927,7 +3951,7 @@ else:
             hint_lvl_current = st.session_state["hint_level"].get(step_key, 0)
             potential_points = calc_points(attempts_so_far + 1, hint_lvl_current)
 
-            _micro_only = bool(step.get("micro_only"))
+            _micro_only = bool(step.get("micro_only")) or bool(step.get("micro"))
             _sym_key = f"symbuf_{step_key}"
             _pending = st.session_state.get(_sym_key)
             user_val = ""
@@ -4061,6 +4085,12 @@ else:
             if len(st.session_state["completed_questions"]) == TOTAL_QUESTIONS:
                 award_badge("🎓 إتقان كامل لجميع التمارين")
             st.balloons()
+            _idx_now = next((_i for _i, _it in enumerate(questions_db) if _it["id"] == qid), None)
+            if _idx_now is not None and _idx_now + 1 < len(questions_db):
+                st.session_state["physbook_goto_title"] = display_title(questions_db[_idx_now + 1])
+                st.toast("🎉 أحسنت! ننتقل إلى التمرين التالي…")
+                time.sleep(1.8)
+                st.rerun()
 
         dur = st.session_state["time_spent"].get(qid, 0)
         st.success(f"🎉 أحسنت! أتممت هذا الإثبات خلال {fmt_time(dur)} (+15 XP مكافأة إتمام).")
