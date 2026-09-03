@@ -4620,7 +4620,7 @@ components.html(
       mirrorValue(this.value);
       scheduleCommit();
     });
-    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); });
+    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); showSymPadFor(this); });
     inp.addEventListener('blur', function () {
       if (committing) return;
       commitValue(this.value);
@@ -4762,7 +4762,7 @@ components.html(
 
   function wirePracticeInput(inp, line) {
     inp.addEventListener('input', function () { autoSize(this); });
-    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); });
+    inp.addEventListener('focus', function () { wantFocusAt = Date.now(); showSymPadFor(this); });
     inp.addEventListener('blur', function () { tryPractice(this, line); });
     inp.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
@@ -4774,6 +4774,65 @@ components.html(
     });
     inp.addEventListener('mousedown', function (e) { e.stopPropagation(); });
     inp.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
+
+  var SYM_LIST = ['Δ', 'ΔP', 'Δt', 'θ', 'π', '×', '÷', '√', '²', '³', '≈', '±', '→', '←', '°', 'm/s', 'm/s²', 'kg', 'N', 'N·s', 'kg·m/s', 'J', '−', '⌫'];
+  var symPadEl = null, symPadTarget = null;
+  function insertSym(sym) {
+    var el = symPadTarget;
+    if (!el || !el.parentNode) { return; }
+    var a = el.value.length, b = el.value.length;
+    try { if (el.selectionStart !== null && el.selectionStart !== undefined) { a = el.selectionStart; b = el.selectionEnd; } } catch (e1) { }
+    if (sym === '⌫') {
+      var p = (a === b && a > 0) ? a - 1 : a;
+      el.value = el.value.slice(0, p) + el.value.slice(b);
+      try { el.setSelectionRange(p, p); } catch (e2) { }
+    } else {
+      el.value = el.value.slice(0, a) + sym + el.value.slice(b);
+      var c = a + sym.length;
+      try { el.setSelectionRange(c, c); } catch (e3) { }
+    }
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e4) { }
+    try { el.focus(); } catch (e5) { }
+  }
+  function ensureSymPad() {
+    if (symPadEl && symPadEl.parentNode) { return symPadEl; }
+    var pad = doc.createElement('div');
+    pad.id = 'phys-sym-pad';
+    pad.setAttribute('dir', 'rtl');
+    pad.style.cssText = 'position:fixed;z-index:99999;bottom:14px;right:14px;max-width:min(94vw,520px);padding:8px 10px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;box-shadow:0 10px 26px rgba(15,23,42,.2);display:none;text-align:right';
+    var head = doc.createElement('div');
+    head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:.85rem;color:#334155;margin-bottom:6px';
+    var ttl = doc.createElement('span');
+    ttl.textContent = '🔤 مكتبة الرموز';
+    var cls = doc.createElement('button');
+    cls.type = 'button';
+    cls.textContent = '✕';
+    cls.style.cssText = 'border:none;background:transparent;font-size:1rem;cursor:pointer;color:#64748b';
+    cls.addEventListener('click', function (e) { e.preventDefault(); pad.style.display = 'none'; });
+    head.appendChild(ttl); head.appendChild(cls);
+    pad.appendChild(head);
+    var row = doc.createElement('div');
+    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+    for (var i = 0; i < SYM_LIST.length; i++) {
+      (function (sym) {
+        var b = doc.createElement('button');
+        b.type = 'button';
+        b.textContent = sym;
+        b.style.cssText = 'min-width:40px;padding:5px 9px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:1rem;font-weight:700;color:#0f172a;cursor:pointer';
+        b.addEventListener('mousedown', function (e) { e.preventDefault(); e.stopPropagation(); });
+        b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); insertSym(sym); });
+        row.appendChild(b);
+      })(SYM_LIST[i]);
+    }
+    pad.appendChild(row);
+    doc.body.appendChild(pad);
+    symPadEl = pad;
+    return pad;
+  }
+  function showSymPadFor(inp) {
+    symPadTarget = inp;
+    ensureSymPad().style.display = 'block';
   }
 
   function wireMicroSlots() {
