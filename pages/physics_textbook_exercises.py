@@ -1772,6 +1772,42 @@ def normalize_symbol(symbol_str: str, case_sensitive: bool = False) -> str:
     cleaned = symbol_str.replace(" ", "").replace("_", "").replace("*", "")
     return cleaned if case_sensitive else cleaned.lower()
 
+_COMM_SUBS = (("×", "*"), ("·", "*"), ("∙", "*"), ("÷", "/"),
+              ("−", "-"), ("–", "-"), ("—", "-"), (",", "."))
+
+def _comm_term(term: str) -> str:
+    factors = [f for f in term.split("*") if f]
+    if len(factors) == 1 and not any(ch.isdigit() for ch in factors[0]):
+        return "".join(sorted(factors[0]))
+    return "*".join(sorted(factors))
+
+def _comm_key(text, case_sensitive: bool = False) -> str:
+    """مفتاح مقارنة يتجاهل ترتيب الرموز في الضرب والجمع وجهتي المساواة."""
+    t = str(text or "")
+    for a, b in _COMM_SUBS:
+        t = t.replace(a, b)
+    for ch in (" ", " ", "_", "{", "}", "(", ")"):
+        t = t.replace(ch, "")
+    if not case_sensitive:
+        t = t.lower()
+    if any("؀" <= c <= "ۿ" for c in t):
+        return t
+    sides = []
+    for side in t.split("="):
+        if len(side) > 14 or "/" in side or "-" in side:
+            sides.append(side)
+            continue
+        terms = [_comm_term(x) for x in side.split("+") if x]
+        sides.append("+".join(sorted(terms)))
+    return "=".join(sorted(sides))
+
+def symbol_answers_match(user_val, target, case_sensitive: bool = False) -> bool:
+    """مقارنة مرنة: تقبل إعادة ترتيب الرموز (الضرب تبديلي)."""
+    if normalize_symbol(user_val, case_sensitive) == normalize_symbol(target, case_sensitive):
+        return True
+    ku, kt = _comm_key(user_val, case_sensitive), _comm_key(target, case_sensitive)
+    return bool(ku) and ku == kt
+
 def eq_html(tex: str) -> str:
     """يحول معادلة LaTeX البسيطة إلى HTML عملي يُقرأ من اليسار إلى اليمين (بدون KaTeX)."""
     if not tex:
@@ -3434,18 +3470,23 @@ else:
             {law_html(step["law"])}
             """, unsafe_allow_html=True)
 
-            st.markdown(derive_html(qid, step), unsafe_allow_html=True)
+            _only_choices = bool(step.get("choices"))
+            if not _only_choices:
+                st.markdown(derive_html(qid, step), unsafe_allow_html=True)
 
             if explain_mode:
                 st.markdown(f'<div class="explain-box">💬 {step.get("label", "")}</div>', unsafe_allow_html=True)
 
             _revealed = st.session_state.setdefault("physbook_revealed", {}).get(step_key, False)
             _plabel = step.get("label", "")
-            if step.get("micro"):
-                st.markdown(micro_html(step, final_say=_plabel, qid=qid, reveal=_revealed), unsafe_allow_html=True)
+            _fmode = "none" if step.get("micro_only") else "preview"
+            if _only_choices:
+                pass
+            elif step.get("micro"):
+                st.markdown(micro_html(step, final_mode=_fmode, final_say=_plabel, qid=qid, reveal=_revealed), unsafe_allow_html=True)
             else:
                 st.markdown(
-                    micro_html(step, field="__nomicro__", final_say=_plabel, qid=qid, reveal=_revealed),
+                    micro_html(step, final_mode=_fmode, field="__nomicro__", final_say=_plabel, qid=qid, reveal=_revealed),
                     unsafe_allow_html=True,
                 )
 
@@ -3566,9 +3607,7 @@ else:
                     is_correct = False
                     if step["type"] == "symbol":
                         case_sens = step.get("case_sensitive", False)
-                        clean_user = normalize_symbol(user_val, case_sens)
-                        clean_target = normalize_symbol(step["target"], case_sens)
-                        is_correct = (clean_user == clean_target)
+                        is_correct = symbol_answers_match(user_val, step["target"], case_sens)
                     else:  # number
                         try:
                             num_float = float(user_val.replace(",", "."))
@@ -4232,6 +4271,27 @@ components.html(
     return out;
   }
 
+  function commKeyAns(v, cs) {
+    var t = normAns(v, cs);
+    if (/[\u0600-\u06FF]/.test(t)) { return t; }
+    var sides = t.split('='), out = [], i, j;
+    for (i = 0; i < sides.length; i++) {
+      var sd = sides[i];
+      if (sd.length > 14 || sd.indexOf('/') >= 0 || sd.indexOf('-') >= 0) { out.push(sd); continue; }
+      var terms = sd.split('+');
+      for (j = 0; j < terms.length; j++) {
+        var fs = terms[j].split('*'), k2;
+        for (k2 = fs.length - 1; k2 >= 0; k2--) { if (!fs[k2]) { fs.splice(k2, 1); } }
+        if (fs.length === 1 && !/[0-9]/.test(fs[0])) { terms[j] = fs[0].split('').sort().join(''); }
+        else { terms[j] = fs.sort().join('*'); }
+      }
+      terms.sort();
+      out.push(terms.join('+'));
+    }
+    out.sort();
+    return out.join('=');
+  }
+
   function fracVal(t) {
     var m = /^(-?[0-9]+(?:\.[0-9]+)?)\/(-?[0-9]+(?:\.[0-9]+)?)$/.exec(t);
     if (m) { var d = parseFloat(m[2]); return (d === 0) ? null : (parseFloat(m[1]) / d); }
@@ -4242,6 +4302,7 @@ components.html(
   function sameAns(a, b, cs) {
     var x = normAns(a, cs), y = normAns(b, cs);
     if (x === y) { return true; }
+    if (commKeyAns(a, cs) === commKeyAns(b, cs)) { return true; }
     var fx = fracVal(x), fy = fracVal(y);
     if (fx !== null && fy !== null) { return Math.abs(fx - fy) < 0.005; }
     return false;
