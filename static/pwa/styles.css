@@ -62,3 +62,10 @@ body{background:#f8fafc;color:#173b3d}.top{background:linear-gradient(125deg,#24
 .sym-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .sym-key{min-width:42px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:1rem;font-weight:700;color:#0f172a;cursor:pointer}
 .sym-key:active{background:#e0f2fe;transform:translateY(1px)}
+
+/* v21: اختيار التعليل الصحيح */
+.mcq-box{margin:10px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;text-align:right}
+.mcq-box b{display:block;margin-bottom:8px;color:#0f172a}
+.mcq-opt{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;margin:6px 0;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;cursor:pointer;line-height:1.8}
+.mcq-opt:hover{border-color:#93c5fd;background:#eff6ff}
+.mcq-opt input{margin-top:6px;flex:none}
