@@ -49,6 +49,16 @@ function inlineEquation(template,example,T){
   return `<input class="rv-inline-input" name="${esc(key)}" inputmode="decimal" autocomplete="off" value="${esc(T.values[key]||'')}" placeholder="…" aria-label="${esc(info.label||'فراغ في العلاقة')}">`;
  }).join('');
 }
+const VIDEO_HEADING='\u0641\u064a\u062f\u064a\u0648 \u062a\u0623\u0633\u064a\u0633\u064a';
+function ytId(u){var m=String(u||'').match(/[?&]v=([A-Za-z0-9_-]{6,})/);return m?m[1]:''}
+function videosHtml(){
+ var vs=(C.videos||[]);if(!vs.length)return '';
+ var act=Math.max(0,Math.min(vs.length-1,Number(S.video)||0));S.video=act;
+ var tabs=vs.map(function(v,i){return '<button class="rv-vtab'+(i===act?' active':'')+'" data-video="'+i+'">'+mixed(v.title)+'</button>'}).join('');
+ var v=vs[act],id=ytId(v.url);
+ var frame=id?'<div class="rv-vframe"><iframe src="https://www.youtube-nocookie.com/embed/'+esc(id)+'" title="'+esc(v.title)+'" loading="lazy" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" frameborder="0"></iframe></div>':'';
+ return '<section class="rv-videos">${videosHtml()}<div class="rv-map-head"><h2>\ud83c\udfa5 '+VIDEO_HEADING+'</h2><small>\u064a\u062d\u062a\u0627\u062c \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0627\u062a\u0635\u0627\u0644\u0627\u064b \u0628\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a</small></div>'+(vs.length>1?'<nav class="rv-vtabs">'+tabs+'</nav>':'')+frame+'<a class="rv-vlink" href="'+esc(v.url)+'" target="_blank" rel="noopener">\u0641\u062a\u062d \u0639\u0644\u0649 \u064a\u0648\u062a\u064a\u0648\u0628 \u2197</a></section>';
+}
 function render(){
  S.active=Math.max(0,Math.min(C.lessons.length-1,Number(S.active)||0));const L=C.lessons[S.active],T=ls(L.id),P=progress();save(STATE_KEY,S);
  const map=C.lessons.map((l,i)=>{const s=ls(l.id),cl=(i===S.active?' current':'')+(s.complete?' done':'');return `<button class="${cl}" data-lesson="${i}"><b><bdi class="rv-ltr" dir="ltr">${i+1}</bdi>. ${mixed(l.title)}</b><small>${s.complete?'مكتمل ✓':i===S.active?'تدرسه الآن':'لم يبدأ'}</small></button>`}).join('');
@@ -68,6 +78,7 @@ function render(){
  bind();
 }
 function bind(){
+ document.querySelectorAll('[data-video]').forEach(function(b){b.onclick=function(){S.video=Number(b.dataset.video);save(STATE_KEY,S);render()}});
  document.querySelectorAll('[data-lesson]').forEach(b=>b.onclick=()=>{S.active=Number(b.dataset.lesson);render();scrollTo({top:0,behavior:'smooth'})});
  document.getElementById('prevLesson').onclick=()=>{if(S.active>0){S.active--;render();scrollTo({top:0,behavior:'smooth'})}};
  document.getElementById('nextLesson').onclick=()=>{if(S.active<C.lessons.length-1){S.active++;render();scrollTo({top:0,behavior:'smooth'})}};
