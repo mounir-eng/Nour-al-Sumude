@@ -187,6 +187,28 @@ def _reset_lesson(prefix: str, lesson_id: str, completed_key: str) -> None:
         done.discard(lesson_id)
 
 
+def _render_videos(course: dict[str, Any], heading: str, note: str) -> None:
+    videos = course.get("videos") or []
+    if not videos:
+        return
+    st.markdown(
+        '<div class="rv-map-title"><h2>' + heading + '</h2><small>' + note + '</small></div>',
+        unsafe_allow_html=True,
+    )
+    if len(videos) == 1:
+        video = videos[0]
+        st.markdown('<div class="rv-video-title">' + _mixed(video["title"]) + '</div>', unsafe_allow_html=True)
+        st.video(video["url"])
+        st.markdown('<a class="rv-video-link" href="' + _esc(video["url"]) + '" target="_blank">فتح على يوتيوب ↗</a>', unsafe_allow_html=True)
+        return
+    tabs = st.tabs([_plain_mixed(v["title"]) for v in videos])
+    for tab, video in zip(tabs, videos):
+        with tab:
+            st.markdown('<div class="rv-video-title">' + _mixed(video["title"]) + '</div>', unsafe_allow_html=True)
+            st.video(video["url"])
+            st.markdown('<a class="rv-video-link" href="' + _esc(video["url"]) + '" target="_blank">فتح على يوتيوب ↗</a>', unsafe_allow_html=True)
+
+
 def render_review_course(course: dict[str, Any]) -> None:
     st.set_page_config(page_title=f"مراجعة {course['title']}", page_icon=course["icon"], layout="wide", initial_sidebar_state="collapsed")
     completed_key, completed = _init(course)
@@ -214,6 +236,9 @@ def render_review_course(course: dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
     st.markdown('<div class="rv-route"><div class="rv-route-item active"><b>1</b><span>افهم المفهوم<br><small>قصة + نموذج + علاقة</small></span></div><div class="rv-route-item"><b>2</b><span>طبّق على الكتاب<br><small>بعد إتمام المراجعة</small></span></div><div class="rv-route-item"><b>3</b><span>ثبّت بالتدريب<br><small>أسئلة إضافية</small></span></div></div>', unsafe_allow_html=True)
+
+    st.markdown("""<style>.rv-video-title{font-size:17px;font-weight:900;color:#18384f;margin:6px 2px 8px;direction:rtl;text-align:right}.rv-video-link{display:inline-block;margin:6px 2px 14px;font-size:14px;font-weight:800;color:#0d8c80;text-decoration:none}.rv-video-link:hover{text-decoration:underline}</style>""", unsafe_allow_html=True)
+    _render_videos(course, "🎥 فيديوهات شرح الوحدة", "شاهد الشرح أولاً ثم انتقل إلى المفاهيم والتمارين")
 
     labels = [f"{i+1}. {l['title']}" for i, l in enumerate(lessons)]
     picker_key = f"{prefix}_lesson_picker"

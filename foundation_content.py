@@ -17,6 +17,9 @@ PHYSICS_FOUNDATION = {
     "subtitle": "نستعيد أهم ما يلزم من الصفين العاشر والحادي عشر قبل بدء الزخم الخطي والدفع، من دون افتراض أن الطالب يتذكر القوانين.",
     "source_note": "مبني على موضوعات القياس، والمتجهات، ووصف الحركة، وقوانين نيوتن، والشغل والطاقة في ملف الميكانيكا المرفق للصفين 10 و11.",
     "next_page": "pages/physics_unit_review.py",
+    "videos": [
+        {"id": "3SCkru0C9Jw", "title": "مدخل تأسيسي: الحركة والقوة قبل الزخم", "url": "https://www.youtube.com/watch?v=3SCkru0C9Jw"},
+    ],
     "next_href": "physics-review.html",
     "lessons": [
         {

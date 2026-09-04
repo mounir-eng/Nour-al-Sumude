@@ -1,11 +1,12 @@
 طريقة الرفع على GitHub (نفس الخطوات السابقة)
 =========================================
 
-1) افتح: https://github.com/mounir-eng/Nour-al-Sumude/upload/main
-2) اسحب مجلّدي pages و static و unit_packs وملف app.py من هذا الملف المضغوط بعد فكّه.
-   (حافِط على المسارات كما هي: pages/... و static/pwa/... و unit_packs/...)
-3) مهم جداً: انزل أسفل الصفحة واضغط على الزر الأخضر Commit changes
-   (إن لم تضغطه لن يتم حفظ أي شيء — وهذا ما حدث من قبل).
-4) تأكد من الرفع: https://github.com/mounir-eng/Nour-al-Sumude/commits/main
-5) في Streamlit: Manage app → Reboot app.
-6) في المتصفح: Ctrl + Shift + R (أو إعادة تحميل قوية) لتحديث الكاش.
+1) فيkّ الملف المضغوط على جهازك.
+2) افتح: https://github.com/mounir-eng/Nour-al-Sumude/upload/main
+3) اسحب الملفات الأربعة في الجزر (review_content.py ، review_renderer.py ،
+   foundation_content.py ، foundation_renderer.py) ومجلدي static و unit_packs.
+   حافِظ على المسارات: static/pwa/... و unit_packs/...
+4) مهم جداً: انزل أسفل الصفحة واضغط الزر الأخضر Commit changes.
+5) تأكد: https://github.com/mounir-eng/Nour-al-Sumude/commits/main
+6) في Streamlit: Manage app → Reboot app.
+7) في المتصفح: Ctrl + Shift + R.

@@ -15,6 +15,13 @@ PHYSICS_REVIEW = {
     "subtitle": "نبني الفكرة من معناها في الحياة، ثم نربطها بالعلاقة، ثم تطبّق أنت التعويض العددي.",
     "source_note": "مرتبة وفق تسلسل فصل الزخم الخطي والدفع في الكتاب المدرسي المرفق.",
     "next_page": "pages/physics_textbook_exercises.py",
+    "videos": [
+        {"id": "6Hl_RlSpOQw", "title": "1. الزخم الخطي: المفهوم والعلاقة P = mv", "url": "https://www.youtube.com/watch?v=6Hl_RlSpOQw&list=PLwQxpts3RNMojSlwXSEFZpGxvh1jvs_78"},
+        {"id": "8nh4ZN_6-Gk", "title": "2. تغير الزخم والدفع I = F·Δt", "url": "https://www.youtube.com/watch?v=8nh4ZN_6-Gk&list=PLwQxpts3RNMojSlwXSEFZpGxvh1jvs_78"},
+        {"id": "yTbeQDVBZfs", "title": "3. العلاقة بين الدفع وتغير الزخم", "url": "https://www.youtube.com/watch?v=yTbeQDVBZfs&list=PLwQxpts3RNMojSlwXSEFZpGxvh1jvs_78"},
+        {"id": "ZIe0VBKHR_Y", "title": "4. حفظ الزخم الخطي", "url": "https://www.youtube.com/watch?v=ZIe0VBKHR_Y&list=PLwQxpts3RNMojSlwXSEFZpGxvh1jvs_78"},
+        {"id": "0Ki7p_ybQos", "title": "5. تطبيقات وتمارين على الزخم والدفع", "url": "https://www.youtube.com/watch?v=0Ki7p_ybQos&list=PLwQxpts3RNMojSlwXSEFZpGxvh1jvs_78"},
+    ],
     "lessons": [
         {
             "id": "pr1",
