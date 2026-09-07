@@ -63,6 +63,27 @@ footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display
 @media(max-width:690px){.container{width:min(100% - 24px,var(--max))}.section{padding:64px 0}.nav-shell{height:67px}.logo-mark{width:39px;height:39px}.logo-text b{font-size:16px}.logo-text small{display:none}.nav-actions .round-btn:not(.menu-btn){display:none}.hero{padding:52px 0 48px}.hero h1{font-size:38px;letter-spacing:-1px}.hero-copy>p{font-size:14px}.hero-actions .btn{width:100%}.visual{min-height:390px}.orbit{width:350px;height:350px}.orbit.o2{width:285px;height:285px}.app-card{width:92%}.fc1{top:2px;right:0}.fc2{bottom:2px;left:0}.fc3{display:none}.stats{grid-template-columns:1fr 1fr}.stat{border-bottom:1px solid var(--line)}.feature-grid,.course-grid,.steps{grid-template-columns:1fr}.feature{padding:21px}.grade-list{grid-template-columns:repeat(4,1fr)}.path-top{display:grid;align-items:start}.subject-tabs{width:max-content}.step:not(:last-child):after{display:none}.practice{gap:25px}.offline{padding:28px 20px;border-radius:24px}.offline-tags{grid-template-columns:1fr 1fr}.footer-grid{grid-template-columns:1fr}.footer-brand{grid-column:auto}}
 @media(max-width:410px){.hero h1{font-size:33px}.visual{min-height:360px}.app-body{padding:14px}.float-card{display:none}.offline-tags{grid-template-columns:1fr}.mini-trust{gap:9px}.stat b{font-size:20px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+.geo-lock[hidden],.login-modal[hidden]{display:none}
+.geo-lock{position:fixed;inset:0;z-index:900;display:grid;place-items:center;padding:18px;background:rgba(8,28,36,.78);backdrop-filter:blur(8px)}
+.geo-card,.login-dialog{width:min(94%,520px);background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:24px;box-shadow:0 30px 80px rgba(6,27,45,.3);padding:24px}
+.geo-card h2,.login-dialog h2{font-size:26px;margin:4px 0 8px}
+.geo-card p,.login-lead{color:var(--muted);font-size:13px;line-height:1.85;margin:0 0 16px}
+.login-modal{position:absolute;inset-inline:0;z-index:520;display:grid;place-items:center;padding:14px}
+.login-backdrop{position:absolute;inset:0;background:rgba(6,27,45,.62);backdrop-filter:blur(5px)}
+.login-dialog{position:relative;max-height:calc(100% - 24px);overflow:auto}
+.login-close{position:absolute;left:16px;top:16px;width:38px;height:38px;border:1px solid var(--line);border-radius:11px;background:var(--soft);color:var(--ink);cursor:pointer}
+.login-choice{display:grid;gap:10px;margin:8px 0 4px}
+.login-choice button{min-height:64px;border:1px solid var(--line);border-radius:16px;background:var(--soft);text-align:right;padding:12px 14px;cursor:pointer}
+.login-choice button b{display:block;font-size:15px}
+.login-choice button span{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.login-form{display:grid;gap:9px}
+.login-form label{font-size:12px;font-weight:800}
+.login-form input,.login-form select{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:#fff;width:100%}
+.login-msg{min-height:18px;font-size:12.5px;line-height:1.7;margin:4px 0 0}
+.login-msg.err{color:#b42318}
+.login-msg.ok{color:#176b4a}
+.login-back{margin-top:8px}
+
 </style>
 
 <style id="streamlit-smooth-mode">
@@ -93,7 +114,7 @@ footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display
       <button class="round-btn round-help" id="howBtn" aria-label="كيف تعمل المنصة؟">?</button>
       <button class="round-btn" id="theme" aria-label="تبديل المظهر">◐</button>
       <button class="round-btn menu-btn" id="menu" aria-label="القائمة">☰</button>
-      <button class="btn primary" id="accountBtn" onclick="return triggerStart(event)">تسجيل الطالب</button>
+      <button class="btn primary" id="accountBtn" onclick="return triggerStart(event)">تسجيل الدخول</button>
     </div>
   </nav>
 </header>
@@ -213,7 +234,71 @@ footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display
   <div><div class="footer-title">استكشف</div><div class="footer-links"><a href="#why">لماذا المنصة؟</a><a href="#paths">المسارات</a><a href="#method">طريقة التعلّم</a><button id="contactBtn" class="footer-action" type="button">✉️ تواصل معنا</button><span class="footer-mail">techn47@gmail.com</span></div></div>
   <div><div class="footer-title">المراحل</div><div class="footer-links"><span>الصفوف 6–9</span><span>الصفوف 10–12</span><span>الفيزياء والكيمياء حاليًا</span><span>جميع المواد قريبًا</span></div></div>
 </div><div class="footer-bottom"><span>© 2026 الطالب الصامد · مشروع دعم تعليمي مجاني</span><span>صُمّمت بعناية لتكون خفيفة، واضحة، وآمنة.</span></div></div></footer>
-<div id="howModal" class="how-modal" hidden aria-hidden="true"><div class="how-backdrop" data-close-how></div><section class="how-dialog" role="dialog" aria-modal="true" aria-labelledby="howTitle"><button class="how-close" type="button" data-close-how aria-label="إغلاق">×</button><span class="kicker">كيف تبدأ؟</span><h2 id="howTitle">ثلاث خطوات واضحة للتعلّم</h2><p class="how-lead">من إنشاء الحساب إلى الدراسة أونلاين أو أوفلاين، ثم متابعة المسار المناسب لمستواك.</p><div class="how-steps"><article class="how-step"><span>👤</span><b>1 · أنشئ حسابك</b><p>اكتب اسمك، اختر الصف والمواد، وحدد كلمة مرور لحسابك المحلي.</p></article><article class="how-step"><span>💻</span><b>2 · اختر طريقة التشغيل</b><p>ادرس أونلاين أو نزّل الحزمة المناسبة لسطح المكتب أو اللوحات أو الهاتف.</p></article><article class="how-step"><span>🪜</span><b>3 · اتبع المراحل</b><p>ابدأ بمراجعة الدرس، واستخدم التأسيس اختياريًا عند الحاجة، ثم انتقل إلى التمارين.</p></article></div><div class="how-flow"><b>المسار الرئيسي:</b> مراجعة الدرس ← تمارين الكتاب ← تدريب إضافي. <b>التأسيس اختياري</b> عند الحاجة.</div><div class="how-actions"><button class="btn primary" type="button" id="modalStart">إنشاء حساب والبدء ←</button><button class="btn outline" type="button" data-close-how>متابعة تصفح الصفحة</button></div></section></div>
+<div id="howModal" class="how-modal" hidden aria-hidden="true"><div class="how-backdrop" data-close-how></div><section class="how-dialog" role="dialog" aria-modal="true" aria-labelledby="howTitle"><button class="how-close" type="button" data-close-how aria-label="إغلاق">×</button><span class="kicker">كيف تبدأ؟</span><h2 id="howTitle">ثلاث خطوات واضحة للتعلّم</h2><p class="how-lead">من تسجيل الدخول إلى الدراسة أونلاين أو أوفلاين، ثم متابعة المسار المناسب لمستواك.</p><div class="how-steps"><article class="how-step"><span>👤</span><b>1 · سجّل الدخول</b><p>الأستاذ يضيفك إلى قسمه ويعطيك كلمة المرور، ثم تدخل باسمه واسمك.</p></article><article class="how-step"><span>💻</span><b>2 · اختر طريقة التشغيل</b><p>ادرس أونلاين أو نزّل الحزمة المناسبة لسطح المكتب أو اللوحات أو الهاتف.</p></article><article class="how-step"><span>🪜</span><b>3 · اتبع المراحل</b><p>ابدأ بمراجعة الدرس، واستخدم التأسيس اختياريًا عند الحاجة، ثم انتقل إلى التمارين.</p></article></div><div class="how-flow"><b>المسار الرئيسي:</b> مراجعة الدرس ← تمارين الكتاب ← تدريب إضافي. <b>التأسيس اختياري</b> عند الحاجة.</div><div class="how-actions"><button class="btn primary" type="button" id="modalStart">تسجيل الدخول ←</button><button class="btn outline" type="button" data-close-how>متابعة تصفح الصفحة</button></div></section></div>
+<div id="geoLock" class="geo-lock" hidden>
+  <div class="geo-card" role="alertdialog" aria-labelledby="geoTitle">
+    <span class="kicker">تقييد جغرافي</span>
+    <h2 id="geoTitle">المنصة متاحة حاليًا في الجزائر وقطاع غزة فقط</h2>
+    <p id="geoText">نتحقق من موقعك لفتح المنصة التعليمية. إن كنت في الجزائر أو غزة وما زالت الرسالة ظاهرة، أعد المحاولة.</p>
+    <button class="btn primary" type="button" id="geoRetry">إعادة المحاولة</button>
+  </div>
+</div>
+<div id="loginModal" class="login-modal" hidden aria-hidden="true">
+  <div class="login-backdrop" data-close-login></div>
+  <section class="login-dialog" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <button class="login-close" type="button" data-close-login aria-label="إغلاق">×</button>
+    <div data-login-view="choose">
+      <span class="kicker">تسجيل الدخول</span>
+      <h2 id="loginTitle">كيف تريد الدخول؟</h2>
+      <p class="login-lead">الأستاذ يسجّل طلبًا يوافق عليه الأدمن، ثم يضيف طلبة قسمه. الطالب يدخل باسم أستاذه وكلمة المرور التي أعطاها له.</p>
+      <div class="login-choice">
+        <button type="button" id="chooseTeacher"><b>تسجيل كأستاذ</b><span>إنشاء حساب أو دخول بعد موافقة الأدمن</span></button>
+        <button type="button" id="chooseStudent"><b>تسجيل كطالب</b><span>اختر أستاذك ثم اكتب اسمك وكلمة المرور</span></button>
+      </div>
+    </div>
+    <div data-login-view="teacher-register" hidden>
+      <span class="kicker">حساب أستاذ</span>
+      <h2>طلب تسجيل أستاذ</h2>
+      <p class="login-lead">بعد الإرسال يصل إيميل للأدمن. لا يمكنك الدخول قبل الموافقة.</p>
+      <form class="login-form" id="teacherRegisterForm">
+        <label>الاسم<input name="first_name" required minlength="2" autocomplete="given-name"></label>
+        <label>اللقب<input name="last_name" required minlength="2" autocomplete="family-name"></label>
+        <label>الإيميل<input name="email" type="email" required autocomplete="email" dir="ltr"></label>
+        <label>كلمة المرور<input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
+        <label>تأكيد كلمة المرور<input name="confirm" type="password" required minlength="6" autocomplete="new-password"></label>
+        <button class="btn primary" type="submit">إرسال الطلب</button>
+      </form>
+      <p class="login-msg" id="teacherRegisterMsg"></p>
+      <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
+    </div>
+    <div data-login-view="teacher-login" hidden>
+      <span class="kicker">دخول الأستاذ</span>
+      <h2>تسجيل دخول الأستاذ</h2>
+      <p class="login-lead">بعد موافقة الأدمن استخدم الإيميل وكلمة المرور.</p>
+      <form class="login-form" id="teacherLoginForm">
+        <label>الإيميل<input name="email" type="email" required autocomplete="username" dir="ltr"></label>
+        <label>كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="btn primary" type="submit">دخول</button>
+      </form>
+      <p class="login-msg" id="teacherLoginMsg"></p>
+      <button class="btn outline" type="button" id="goTeacherRegister">ليس لدي حساب بعد</button>
+      <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
+    </div>
+    <div data-login-view="student-login" hidden>
+      <span class="kicker">دخول الطالب</span>
+      <h2>تسجيل دخول الطالب</h2>
+      <p class="login-lead">اختر أستاذك ثم اكتب اسمك وكلمة المرور التي عيّنها لك.</p>
+      <form class="login-form" id="studentLoginForm">
+        <label>الأستاذ<select name="teacher_id" id="teacherSelect" required><option value="">جاري تحميل الأساتذة…</option></select></label>
+        <label>اسم الطالب<input name="name" required minlength="2" autocomplete="name"></label>
+        <label>كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="btn primary" type="submit">دخول</button>
+      </form>
+      <p class="login-msg" id="studentLoginMsg"></p>
+      <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
+    </div>
+  </section>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 const gradeNames={6:"السادس",7:"السابع",8:"الثامن",9:"التاسع",10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"};
@@ -311,17 +396,105 @@ function syncFrameHeight() {
   });
 }
 
+var approvedTeachers = [];
+var geoAllowed = false;
+function formValues(form){
+  var data={};
+  Array.prototype.forEach.call(form.elements, function(el){
+    if(!el.name) return;
+    data[el.name]=el.value;
+  });
+  return data;
+}
+function setLoginMsg(id, text, ok){
+  var el=document.getElementById(id); if(!el) return;
+  el.textContent=text||"";
+  el.className="login-msg "+(ok?"ok":"err");
+}
+function fillTeacherSelect(){
+  var sel=document.getElementById("teacherSelect"); if(!sel) return;
+  var current=sel.value;
+  sel.innerHTML="";
+  var first=document.createElement("option"); first.value=""; first.textContent=approvedTeachers.length?"اختر الأستاذ":"لا يوجد أساتذة معتمدون بعد";
+  sel.appendChild(first);
+  approvedTeachers.forEach(function(t){
+    var o=document.createElement("option"); o.value=t.id; o.textContent=t.name; sel.appendChild(o);
+  });
+  if(current) sel.value=current;
+}
+function showLoginView(name){
+  document.querySelectorAll("[data-login-view]").forEach(function(v){v.hidden=v.getAttribute("data-login-view")!==name;});
+}
+function openLoginModal(view){
+  if(!geoAllowed){showGeoLock("المنصة متاحة حاليًا في الجزائر وقطاع غزة فقط");return false;}
+  var m=document.getElementById("loginModal"), v=modalViewport();
+  m.style.top=v.top+"px"; m.style.height=v.height+"px"; m.hidden=false; m.setAttribute("aria-hidden","false");
+  showLoginView(view||"choose");
+  fillTeacherSelect();
+  return false;
+}
+function closeLoginModal(){
+  var m=document.getElementById("loginModal"); if(!m) return;
+  m.hidden=true; m.setAttribute("aria-hidden","true");
+}
+function isAllowedRegion(d){
+  if(!d) return false;
+  var cc=String(d.country_code||d.country||"").toUpperCase();
+  var tz=String(d.timezone||"");
+  var blob=((d.region||"")+" "+(d.city||"")+" "+(d.region_name||d.regionName||"")+" "+(d.country_name||d.country||"")+" "+tz).toLowerCase();
+  if(cc==="IL" || blob.indexOf("israel")>=0) return false;
+  if(cc==="DZ" || blob.indexOf("algeria")>=0 || blob.indexOf("الجزائر")>=0) return true;
+  if(tz==="Asia/Gaza") return true;
+  if((cc==="PS" || blob.indexOf("palestine")>=0 || blob.indexOf("فلسطين")>=0) && /gaza|غزة|ghaza|ghazzah|strip/.test(blob)) return true;
+  if(/gaza|غزة|ghazzah/.test(blob)) return true;
+  return false;
+}
+function showGeoLock(text){
+  geoAllowed=false;
+  var lock=document.getElementById("geoLock"); if(!lock) return;
+  var p=document.getElementById("geoText"); if(p && text) p.textContent=text;
+  lock.hidden=false;
+}
+function hideGeoLock(){
+  geoAllowed=true;
+  var lock=document.getElementById("geoLock"); if(lock) lock.hidden=true;
+}
+function fetchJson(url){
+  return fetch(url,{cache:"no-store"}).then(function(r){ if(!r.ok) throw new Error("bad"); return r.json(); });
+}
+function checkGeo(){
+  return fetchJson("https://ipwho.is/").then(function(d){
+    if(d && d.success===false) throw new Error("ipwho");
+    return d;
+  }).catch(function(){
+    return fetchJson("https://ipapi.co/json/");
+  }).then(function(d){
+    if(isAllowedRegion(d)) { hideGeoLock(); return true; }
+    showGeoLock("المنصة متاحة حاليًا في الجزائر وقطاع غزة فقط");
+    return false;
+  }).catch(function(){
+    showGeoLock("تعذر التحقق من الموقع الجغرافي. أعد المحاولة إن كنت في الجزائر أو قطاع غزة.");
+    return false;
+  });
+}
+function sendAuth(action, extra){
+  var payload={action:action, token:String(Date.now())+"-"+Math.random().toString(36).slice(2)};
+  Object.keys(extra||{}).forEach(function(k){ payload[k]=extra[k]; });
+  sendDataToPython(payload);
+}
+
 function localProfile(){try{return JSON.parse(localStorage.getItem("samed-profile-v1")||"null")}catch(e){return null}}
 function sendAction(action){sendDataToPython({action:action,token:String(Date.now())+"-"+Math.random().toString(36).slice(2)});}
-function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();}sendAction(localProfile()?"open_dashboard":"open_onboarding");return false;}
-function triggerDashboard(event){if(event){event.preventDefault();event.stopPropagation();}sendAction(localProfile()?"open_dashboard":"open_onboarding");return false;}
+function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();}var p=localProfile(); if(p&&p.teacher_id){sendAction("open_dashboard");return false;} closeHowModal(); openLoginModal("choose"); return false;}
+function triggerDashboard(event){return triggerStart(event);}
 function triggerMomentum(event) {
   if (event) { event.preventDefault(); event.stopPropagation(); }
-  if(!localProfile()){sendAction("open_onboarding");return false;}
-  sendDataToPython({
-    action:"open_momentum",
-    token:String(Date.now()) + "-" + Math.random().toString(36).slice(2)
-  });
+  var p=localProfile();
+  if(p&&p.teacher_id){
+    sendDataToPython({action:"open_momentum",token:String(Date.now()) + "-" + Math.random().toString(36).slice(2)});
+    return false;
+  }
+  openLoginModal("student-login");
   return false;
 }
 
@@ -359,10 +532,17 @@ function modalViewport(){
 }
 function openHowModal(){var m=document.getElementById('howModal'),v=modalViewport();m.style.top=v.top+'px';m.style.height=v.height+'px';m.hidden=false;m.setAttribute('aria-hidden','false');setTimeout(()=>m.querySelector('.how-close').focus(),20);}
 function closeHowModal(){var m=document.getElementById('howModal');m.hidden=true;m.setAttribute('aria-hidden','true');}
-document.getElementById('contactBtn').onclick=function(){sendAction('open_contact');};document.getElementById('contactHeaderBtn').onclick=function(){sendAction('open_contact');};document.getElementById('howBtn').onclick=openHowModal;document.getElementById('howWorksBtn').onclick=openHowModal;document.getElementById('modalStart').onclick=function(){closeHowModal();sendAction(localProfile()?'open_dashboard':'open_onboarding');};document.querySelectorAll('[data-close-how]').forEach(function(x){x.onclick=closeHowModal;});document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHowModal();});
+document.getElementById('contactBtn').onclick=function(){sendAction('open_contact');};document.getElementById('contactHeaderBtn').onclick=function(){sendAction('open_contact');};document.getElementById('howBtn').onclick=openHowModal;document.getElementById('howWorksBtn').onclick=openHowModal;document.getElementById('modalStart').onclick=function(){closeHowModal();triggerStart();};document.querySelectorAll('[data-close-how]').forEach(function(x){x.onclick=closeHowModal;});document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeHowModal();closeLoginModal();}});
 
 function onDataFromPython(event) {
   if (!event.data || event.data.type !== "streamlit:render") return;
+  var args = event.data.args || {};
+  if (Array.isArray(args.teachers)) { approvedTeachers = args.teachers; fillTeacherSelect(); }
+  if (args.notice) {
+    setLoginMsg("teacherRegisterMsg", String(args.notice), true);
+    setLoginMsg("teacherLoginMsg", String(args.notice), true);
+    setLoginMsg("studentLoginMsg", String(args.notice), true);
+  }
   cleanupParentExerciseUi();
   syncFrameHeight();
 }
@@ -373,17 +553,28 @@ initStreamlitComponent();
 window.addEventListener("load", function () {
   var p=localProfile();
   var account=document.getElementById("accountBtn");
-  if(account) account.textContent=p?"لوحة الطالب":"تسجيل الطالب";
-  if(p) sendDataToPython({action:"profile_loaded",profile:p});
+  if(account) account.textContent=(p&&p.teacher_id)?"لوحة الطالب":"تسجيل الدخول";
+  if(p && p.teacher_id) sendDataToPython({action:"profile_loaded",profile:p});
+  document.getElementById("chooseTeacher").onclick=function(){showLoginView("teacher-login");};
+  document.getElementById("chooseStudent").onclick=function(){showLoginView("student-login"); fillTeacherSelect();};
+  document.getElementById("goTeacherRegister").onclick=function(){showLoginView("teacher-register");};
+  document.querySelectorAll("[data-login-back]").forEach(function(b){b.onclick=function(){showLoginView("choose");};});
+  document.querySelectorAll("[data-close-login]").forEach(function(x){x.onclick=closeLoginModal;});
+  document.getElementById("geoRetry").onclick=function(){checkGeo();};
+  document.getElementById("teacherRegisterForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_register", d); setLoginMsg("teacherRegisterMsg","جاري إرسال الطلب…",true); return false;};
+  document.getElementById("teacherLoginForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_login", d); setLoginMsg("teacherLoginMsg","جاري التحقق…",true); return false;};
+  document.getElementById("studentLoginForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("student_login", d); setLoginMsg("studentLoginMsg","جاري التحقق…",true); return false;};
+  checkGeo();
   cleanupParentExerciseUi();
   wireSmoothAnchors();
   syncFrameHeight();
   scrollLandingTop();
   if (window.ResizeObserver) {
     var observer=new ResizeObserver(syncFrameHeight);
-    [document.querySelector(".nav-shell"),document.querySelector("main"),document.querySelector("footer")].filter(Boolean).forEach(function(node){observer.observe(node);});
+    [document.querySelector(".nav-shell"),document.querySelector("main"),document.querySelector("footer"),document.getElementById("loginModal")].filter(Boolean).forEach(function(node){observer.observe(node);});
   }
 });
+
 </script>
 
 </body>
