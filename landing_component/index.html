@@ -281,7 +281,34 @@ footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display
         <button class="btn primary" type="submit">دخول</button>
       </form>
       <p class="login-msg" id="teacherLoginMsg"></p>
+      <button class="btn outline" type="button" id="goTeacherForgot">نسيت كلمة المرور</button>
       <button class="btn outline" type="button" id="goTeacherRegister">ليس لدي حساب بعد</button>
+      <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
+    </div>
+    <div data-login-view="teacher-forgot" hidden>
+      <span class="kicker">استعادة كلمة المرور</span>
+      <h2>نسيت كلمة مرور الأستاذ</h2>
+      <p class="login-lead">أدخل إيميل الحساب المعتمد. نرسل رمزًا لإعادة الضبط. كلمات المرور لا تُعرض في أي لوحة.</p>
+      <form class="login-form" id="teacherForgotForm">
+        <label>الإيميل<input name="email" type="email" required autocomplete="email" dir="ltr"></label>
+        <button class="btn primary" type="submit">إرسال الرمز</button>
+      </form>
+      <p class="login-msg" id="teacherForgotMsg"></p>
+      <button class="btn outline" type="button" id="goTeacherReset">لدي الرمز</button>
+      <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
+    </div>
+    <div data-login-view="teacher-reset" hidden>
+      <span class="kicker">ضبط كلمة مرور جديدة</span>
+      <h2>إعادة ضبط كلمة المرور</h2>
+      <p class="login-lead">أدخل الرمز الذي وصلك ثم كلمة المرور الجديدة.</p>
+      <form class="login-form" id="teacherResetForm">
+        <label>الإيميل<input name="email" type="email" required autocomplete="email" dir="ltr"></label>
+        <label>الرمز<input name="code" required inputmode="numeric" autocomplete="one-time-code" dir="ltr"></label>
+        <label>كلمة المرور الجديدة<input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
+        <label>التأكيد<input name="confirm" type="password" required minlength="6" autocomplete="new-password"></label>
+        <button class="btn primary" type="submit">حفظ كلمة المرور</button>
+      </form>
+      <p class="login-msg" id="teacherResetMsg"></p>
       <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
     </div>
     <div data-login-view="student-login" hidden>
@@ -295,6 +322,7 @@ footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display
         <button class="btn primary" type="submit">دخول</button>
       </form>
       <p class="login-msg" id="studentLoginMsg"></p>
+      <p class="login-lead">إذا نسيت كلمة المرور اطلب من أستاذك تعيين كلمة جديدة من لوحة القسم. لا تظهر كلمات المرور في أي حساب.</p>
       <button class="btn outline login-back" type="button" data-login-back>رجوع</button>
     </div>
   </section>
@@ -539,9 +567,14 @@ function onDataFromPython(event) {
   var args = event.data.args || {};
   if (Array.isArray(args.teachers)) { approvedTeachers = args.teachers; fillTeacherSelect(); }
   if (args.notice) {
-    setLoginMsg("teacherRegisterMsg", String(args.notice), true);
-    setLoginMsg("teacherLoginMsg", String(args.notice), true);
-    setLoginMsg("studentLoginMsg", String(args.notice), true);
+    if (window._authTimer) { clearTimeout(window._authTimer); window._authTimer=null; }
+    var ok = !/تعذر|غير|خطأ|لا يوجد/.test(String(args.notice));
+    setLoginMsg("teacherRegisterMsg", String(args.notice), ok);
+    setLoginMsg("teacherLoginMsg", String(args.notice), ok);
+    setLoginMsg("studentLoginMsg", String(args.notice), ok);
+    setLoginMsg("teacherForgotMsg", String(args.notice), ok);
+    setLoginMsg("teacherResetMsg", String(args.notice), ok);
+    openLoginModal(args.auth_view || "teacher-register");
   }
   cleanupParentExerciseUi();
   syncFrameHeight();
@@ -558,11 +591,15 @@ window.addEventListener("load", function () {
   document.getElementById("chooseTeacher").onclick=function(){showLoginView("teacher-login");};
   document.getElementById("chooseStudent").onclick=function(){showLoginView("student-login"); fillTeacherSelect();};
   document.getElementById("goTeacherRegister").onclick=function(){showLoginView("teacher-register");};
+  document.getElementById("goTeacherForgot").onclick=function(){showLoginView("teacher-forgot");};
+  document.getElementById("goTeacherReset").onclick=function(){showLoginView("teacher-reset");};
   document.querySelectorAll("[data-login-back]").forEach(function(b){b.onclick=function(){showLoginView("choose");};});
   document.querySelectorAll("[data-close-login]").forEach(function(x){x.onclick=closeLoginModal;});
   document.getElementById("geoRetry").onclick=function(){checkGeo();};
-  document.getElementById("teacherRegisterForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_register", d); setLoginMsg("teacherRegisterMsg","جاري إرسال الطلب…",true); return false;};
+  document.getElementById("teacherRegisterForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_register", d); setLoginMsg("teacherRegisterMsg","جاري إرسال الطلب…",true); if(window._authTimer) clearTimeout(window._authTimer); window._authTimer=setTimeout(function(){setLoginMsg("teacherRegisterMsg","تعذر إكمال الإرسال. أعد المحاولة، ثم افتح لوحة الأدمن عبر ?admin=1 إن كان الطلب قد وصل.",false);},18000); return false;};
   document.getElementById("teacherLoginForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_login", d); setLoginMsg("teacherLoginMsg","جاري التحقق…",true); return false;};
+  document.getElementById("teacherForgotForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_forgot", d); setLoginMsg("teacherForgotMsg","جاري إرسال الرمز…",true); return false;};
+  document.getElementById("teacherResetForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("teacher_reset", d); setLoginMsg("teacherResetMsg","جاري ضبط كلمة المرور…",true); return false;};
   document.getElementById("studentLoginForm").onsubmit=function(ev){ev.preventDefault(); var d=formValues(this); sendAuth("student_login", d); setLoginMsg("studentLoginMsg","جاري التحقق…",true); return false;};
   checkGeo();
   cleanupParentExerciseUi();
