@@ -7,6 +7,7 @@ import html as html_lib
 import re
 import smtplib
 import ssl
+import secrets
 import uuid
 from datetime import datetime, timezone
 from email.message import EmailMessage
@@ -122,26 +123,33 @@ def register_teacher(first_name: str, last_name: str, email: str, password: str,
         return False, "كلمة المرور من 6 أحرف على الأقل."
     if password != confirm:
         return False, "كلمة المرور وتأكيدها غير متطابقين."
-    rows = _teacher_rows()
-    for row in rows:
-        if str(row.get("email") or "").strip().lower() == email:
-            status = str(row.get("status") or "").strip().lower()
-            if status == "pending":
-                return False, "طلبك قيد المراجعة من الأدمن."
-            if status == "approved":
-                return False, "هذا البريد مسجّل. سجّل الدخول كأستاذ."
-            return False, "هذا البريد غير متاح."
-    rec_id = "tch-" + uuid.uuid4().hex[:12]
-    ws = _teachers_ws()
-    ws.append_row(
-        [rec_id, first_name, last_name, email, hash_password(password), "pending", _now(), ""],
-        value_input_option="USER_ENTERED",
-    )
     try:
-        notify_admin_teacher_request(first_name, last_name, email)
+        from student_cloud_sync import is_configured
+        if not is_configured():
+            return False, "تعذر حفظ الطلب: لم يُربط Google Sheets بعد."
+        rows = _teacher_rows()
+        for row in rows:
+            if str(row.get("email") or "").strip().lower() == email:
+                status = str(row.get("status") or "").strip().lower()
+                if status == "pending":
+                    return False, "طلبك قيد المراجعة من الأدمن. افتح لوحة الأدمن للموافقة."
+                if status == "approved":
+                    return False, "هذا البريد مسجّل. سجّل الدخول كأستاذ."
+                return False, "هذا البريد غير متاح."
+        rec_id = "tch-" + uuid.uuid4().hex[:12]
+        ws = _teachers_ws()
+        ws.append_row(
+            [rec_id, first_name, last_name, email, hash_password(password), "pending", _now(), ""],
+            value_input_option="USER_ENTERED",
+        )
+    except Exception:
+        return False, "تعذر حفظ طلب التسجيل. تحقق من ربط Google Sheets ثم أعد المحاولة."
+    try:
+        import threading
+        threading.Thread(target=notify_admin_teacher_request, args=(first_name, last_name, email), daemon=True).start()
     except Exception:
         pass
-    return True, "وصل طلبك إلى الأدمن. بعد الموافقة يمكنك تسجيل الدخول كأستاذ."
+    return True, "وصل طلبك إلى لوحة الأدمن. افتح ?admin=1 للموافقة، ثم يمكنك تسجيل الدخول كأستاذ."
 
 
 def login_teacher(email: str, password: str) -> tuple[dict | None, str]:
@@ -167,6 +175,105 @@ def login_teacher(email: str, password: str) -> tuple[dict | None, str]:
             "name": teacher_display_name(row),
         }, ""
     return None, "بيانات الدخول غير صحيحة."
+
+
+
+def request_teacher_reset(email: str) -> tuple[str, str]:
+    email = str(email or "").strip().lower()
+    if not _valid_email(email):
+        return "", "اكتب بريدًا إلكترونيًا صحيحًا."
+    found = None
+    for row in _teacher_rows():
+        if str(row.get("email") or "").strip().lower() != email:
+            continue
+        found = row
+        break
+    if not found:
+        return "", "إن كان الحساب معتمدًا سيصلك رمز إلى بريدك."
+    status = str(found.get("status") or "").strip().lower()
+    if status == "pending":
+        return "", "طلبك ما زال بانتظار موافقة الأدمن."
+    if status != "approved":
+        return "", "هذا الحساب غير معتمد."
+    code = f"{secrets.randbelow(1000000):06d}"
+    try:
+        import threading
+        threading.Thread(target=_email_reset_code, args=(email, teacher_display_name(found), code), daemon=True).start()
+    except Exception:
+        try:
+            _email_reset_code(email, teacher_display_name(found), code)
+        except Exception:
+            return "", "تعذر إرسال رمز الاستعادة. تحقق من إعدادات البريد."
+    return code, "أرسلنا رمزًا إلى بريدك. صالح لمدة 15 دقيقة."
+
+
+def set_teacher_password_by_email(email: str, password: str) -> bool:
+    email = str(email or "").strip().lower()
+    ws = _teachers_ws()
+    rows = ws.get_all_records()
+    for i, row in enumerate(rows):
+        if str(row.get("email") or "").strip().lower() != email:
+            continue
+        ws.update(f"E{i + 2}", [[hash_password(password)]], value_input_option="USER_ENTERED")
+        return True
+    return False
+
+
+def confirm_teacher_reset(email: str, code: str, password: str, confirm: str, expected_hash: str) -> tuple[bool, str]:
+    email = str(email or "").strip().lower()
+    code = str(code or "").strip()
+    password = str(password or "")
+    confirm = str(confirm or "")
+    if not _valid_email(email):
+        return False, "اكتب بريدًا إلكترونيًا صحيحًا."
+    if len(code) < 4:
+        return False, "اكتب رمز الاستعادة."
+    if not expected_hash or not verify_password(code, expected_hash):
+        return False, "رمز الاستعادة غير صحيح أو منتهٍ."
+    if len(password) < 6:
+        return False, "كلمة المرور الجديدة من 6 أحرف على الأقل."
+    if password != confirm:
+        return False, "كلمة المرور وتأكيدها غير متطابقين."
+    if not set_teacher_password_by_email(email, password):
+        return False, "تعذر حفظ كلمة المرور الجديدة."
+    return True, "تم ضبط كلمة المرور. يمكنك تسجيل الدخول الآن."
+
+
+def reset_student_password(teacher_id: str, student_id: str, password: str, confirm: str) -> tuple[bool, str]:
+    from student_cloud_sync import list_students, safe_upsert
+
+    teacher_id = str(teacher_id or "").strip()
+    student_id = str(student_id or "").strip()
+    password = str(password or "")
+    confirm = str(confirm or "")
+    if not teacher_id or not student_id:
+        return False, "اختر الطالب."
+    if len(password) < 6:
+        return False, "كلمة المرور الجديدة من 6 أحرف على الأقل."
+    if password != confirm:
+        return False, "كلمة المرور وتأكيدها غير متطابقين."
+    found = None
+    for student in list_students(teacher_id=teacher_id, include_secrets=True):
+        if str(student.get("id") or "") == student_id:
+            found = student
+            break
+    if not found:
+        return False, "هذا الطالب ليس في قسمك."
+    record = {
+        "id": student_id,
+        "name": found.get("name"),
+        "grade": found.get("grade"),
+        "subjects": found.get("subjects"),
+        "xp": found.get("xp") or 0,
+        "progress": found.get("progress") or 0,
+        "stages": found.get("stages") or {},
+        "badges": found.get("badges") or [],
+        "teacher_id": teacher_id,
+        "password_hash": hash_password(password),
+    }
+    if not safe_upsert(record, merge=True):
+        return False, "تعذر حفظ كلمة المرور الجديدة."
+    return True, f"تم ضبط كلمة مرور جديدة لـ {found.get('name') or 'الطالب'}."
 
 
 def _set_teacher_status(teacher_id: str, status: str) -> bool:
@@ -293,11 +400,54 @@ def notify_admin_teacher_request(first_name: str, last_name: str, email: str) ->
     mail.add_alternative(rich, subtype="html")
     context = ssl.create_default_context()
     if int(config["port"]) == 465:
-        with smtplib.SMTP_SSL(str(config["host"]), int(config["port"]), timeout=20, context=context) as smtp:
+        with smtplib.SMTP_SSL(str(config["host"]), int(config["port"]), timeout=8, context=context) as smtp:
             smtp.login(str(config["username"]), str(config["password"]))
             smtp.send_message(mail)
     else:
-        with smtplib.SMTP(str(config["host"]), int(config["port"]), timeout=20) as smtp:
+        with smtplib.SMTP(str(config["host"]), int(config["port"]), timeout=8) as smtp:
+            smtp.ehlo()
+            smtp.starttls(context=context)
+            smtp.ehlo()
+            smtp.login(str(config["username"]), str(config["password"]))
+            smtp.send_message(mail)
+
+
+def _email_reset_code(email: str, name: str, code: str) -> None:
+    try:
+        from contact_page import _smtp_config
+    except Exception:
+        return
+    config = _smtp_config()
+    if not config:
+        raise RuntimeError("no smtp")
+    plain = (
+        "استعادة كلمة المرور — الطالب الصامد\n"
+        f"مرحباً {name}\n\n"
+        f"رمز إعادة الضبط: {code}\n"
+        "صالح لمدة 15 دقيقة.\n"
+        "إذا لم تطلب ذلك تجاهل الرسالة.\n"
+    )
+    rich = (
+        '<div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;line-height:1.8;color:#173b3d">'
+        "<h2 style=\"color:#245e65\">استعادة كلمة المرور</h2>"
+        f"<p>مرحباً {html_lib.escape(name)}</p>"
+        f"<p>رمز إعادة الضبط: <b dir=\"ltr\">{html_lib.escape(code)}</b></p>"
+        "<p>صالح لمدة 15 دقيقة. لا تشارك الرمز مع أحد.</p></div>"
+    )
+    mail = EmailMessage()
+    mail["Subject"] = "[الطالب الصامد] رمز استعادة كلمة المرور"
+    mail["From"] = formataddr(("منصة الطالب الصامد", str(config["sender"])))
+    mail["To"] = email
+    mail.set_content(plain)
+    mail.add_alternative(rich, subtype="html")
+    context = ssl.create_default_context()
+    timeout = 8
+    if int(config["port"]) == 465:
+        with smtplib.SMTP_SSL(str(config["host"]), int(config["port"]), timeout=timeout, context=context) as smtp:
+            smtp.login(str(config["username"]), str(config["password"]))
+            smtp.send_message(mail)
+    else:
+        with smtplib.SMTP(str(config["host"]), int(config["port"]), timeout=timeout) as smtp:
             smtp.ehlo()
             smtp.starttls(context=context)
             smtp.ehlo()

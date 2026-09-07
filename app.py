@@ -43,14 +43,17 @@ except Exception:
         st.stop()
 
 if st.session_state.get("samed_role") == "teacher" and st.session_state.get("teacher_profile"):
-    try:
-        from teacher_panel import render_teacher_panel
-        render_teacher_panel()
-        st.stop()
-    except Exception as exc:
-        st.error("تعذر فتح لوحة الأستاذ.")
-        st.caption(str(exc)[:240])
-        st.stop()
+    _tview = st.session_state.get("samed_view", "home")
+    _tlearn = bool(st.session_state.get("samed_teacher_learn"))
+    if not (_tlearn and _tview in ("dashboard", "app", "onboarding")):
+        try:
+            from teacher_panel import render_teacher_panel
+            render_teacher_panel()
+            st.stop()
+        except Exception as exc:
+            st.error("تعذر فتح لوحة الأستاذ.")
+            st.caption(str(exc)[:240])
+            st.stop()
 
 # ==========================================================
 # 2. التنسيق (CSS)
@@ -3260,6 +3263,8 @@ def _render_dashboard():
     display_xp = max(xp, done * 100 + 50 if done else 0)
     try:
         from student_cloud_sync import combine_stages, merge_offline, record_from_profile, safe_upsert
+        if str((profile or {}).get("mode") or "") == "teacher_preview":
+            raise RuntimeError("skip teacher preview upsert")
         _sync_record = record_from_profile(
             profile,
             xp=int(display_xp),
@@ -3321,39 +3326,89 @@ def _render_dashboard():
 # صفحة الهبوط المعتمدة حاليًا.
 if st.session_state.get("samed_view","home")=="home":
     st.markdown("""<style>[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer{display:none!important}.stApp{background:#fff!important}.block-container{max-width:none!important;padding:0!important;margin:0!important}[data-testid='stElementContainer']{margin:0!important}iframe{display:block;width:100%!important;border:0!important}</style>""",unsafe_allow_html=True)
-    from accounts import list_approved_teachers, login_student, login_teacher, register_teacher
+    from accounts import confirm_teacher_reset, hash_password, list_approved_teachers, login_student, login_teacher, register_teacher, request_teacher_reset
     teachers=[]
     try:
         teachers=list_approved_teachers()
     except Exception:
         teachers=[]
     notice=st.session_state.pop("samed_auth_notice", "") or ""
+    auth_view=st.session_state.pop("samed_auth_view", "") or ""
     comp=components.declare_component("student_samed_local_first_v18",path=str(Path(__file__).with_name("landing_component")))
-    event=comp(teachers=teachers, notice=notice, default=None, key="student_samed_local_first_v18")
+    event=comp(teachers=teachers, notice=notice, auth_view=auth_view, default=None, key="student_samed_local_first_v18")
     if isinstance(event,dict):
         action=event.get("action");token=str(event.get("token",""))
         if action=="profile_loaded" and isinstance(event.get("profile"),dict) and event.get("profile",{}).get("teacher_id"):
             p=dict(event["profile"]);p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","");st.session_state["samed_role"]="student"
             try:
-                from student_cloud_sync import record_from_profile, safe_upsert
-                rec=record_from_profile(p); rec["teacher_id"]=p.get("teacher_id"); safe_upsert(rec)
+                if str((p or {}).get("mode") or "") != "teacher_preview":
+                    from student_cloud_sync import record_from_profile, safe_upsert
+                    rec=record_from_profile(p); rec["teacher_id"]=p.get("teacher_id"); safe_upsert(rec)
             except Exception:
                 pass
         elif token and st.session_state.get("_last_visual_event")!=token:
             st.session_state["_last_visual_event"]=token
             if action=="teacher_register":
-                ok, msg = register_teacher(event.get("first_name"), event.get("last_name"), event.get("email"), event.get("password"), event.get("confirm"))
+                try:
+                    ok, msg = register_teacher(event.get("first_name"), event.get("last_name"), event.get("email"), event.get("password"), event.get("confirm"))
+                except Exception:
+                    ok, msg = False, "تعذر إرسال الطلب. أعد المحاولة."
                 st.session_state["samed_auth_notice"]=msg
+                st.session_state["samed_auth_view"]="teacher-register"
+            elif action=="teacher_forgot":
+                try:
+                    code, msg = request_teacher_reset(event.get("email"))
+                except Exception:
+                    code, msg = "", "تعذر إرسال رمز الاستعادة. أعد المحاولة."
+                if code:
+                    import time as _time
+                    st.session_state["samed_reset_email"] = str(event.get("email") or "").strip().lower()
+                    st.session_state["samed_reset_hash"] = hash_password(code)
+                    st.session_state["samed_reset_exp"] = _time.time() + 15 * 60
+                    st.session_state["samed_auth_view"] = "teacher-reset"
+                else:
+                    st.session_state["samed_auth_view"] = "teacher-forgot"
+                st.session_state["samed_auth_notice"] = msg
+            elif action=="teacher_reset":
+                try:
+                    import time as _time
+                    email = str(event.get("email") or "").strip().lower()
+                    expected = st.session_state.get("samed_reset_hash") or ""
+                    exp = float(st.session_state.get("samed_reset_exp") or 0)
+                    stored_email = str(st.session_state.get("samed_reset_email") or "")
+                    if not expected or _time.time() > exp or (stored_email and stored_email != email):
+                        ok, msg = False, "رمز الاستعادة غير صحيح أو منتهٍ. اطلب رمزًا جديدًا."
+                    else:
+                        ok, msg = confirm_teacher_reset(email, event.get("code"), event.get("password"), event.get("confirm"), expected)
+                    if ok:
+                        st.session_state.pop("samed_reset_hash", None)
+                        st.session_state.pop("samed_reset_exp", None)
+                        st.session_state.pop("samed_reset_email", None)
+                        st.session_state["samed_auth_view"] = "teacher-login"
+                    else:
+                        st.session_state["samed_auth_view"] = "teacher-reset"
+                except Exception:
+                    ok, msg = False, "تعذر ضبط كلمة المرور. أعد المحاولة."
+                    st.session_state["samed_auth_view"] = "teacher-reset"
+                st.session_state["samed_auth_notice"] = msg
             elif action=="teacher_login":
-                teacher, msg = login_teacher(event.get("email"), event.get("password"))
+                try:
+                    teacher, msg = login_teacher(event.get("email"), event.get("password"))
+                except Exception:
+                    teacher, msg = None, "تعذر التحقق من الدخول. أعد المحاولة."
                 if teacher:
                     st.session_state["teacher_profile"]=teacher
                     st.session_state["samed_role"]="teacher"
+                    st.session_state["samed_teacher_learn"]=False
                     st.session_state["samed_view"]="teacher_dashboard"
                 else:
                     st.session_state["samed_auth_notice"]=msg
+                    st.session_state["samed_auth_view"]="teacher-login"
             elif action=="student_login":
-                profile, msg = login_student(event.get("teacher_id"), event.get("name"), event.get("password"))
+                try:
+                    profile, msg = login_student(event.get("teacher_id"), event.get("name"), event.get("password"))
+                except Exception:
+                    profile, msg = None, "تعذر التحقق من الدخول. أعد المحاولة."
                 if profile:
                     st.session_state["student_profile"]=profile
                     st.session_state["student_name"]=profile.get("name","")

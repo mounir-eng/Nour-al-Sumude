@@ -7,7 +7,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from accounts import add_student_for_teacher
+from accounts import add_student_for_teacher, reset_student_password
 from student_cloud_sync import is_configured, list_students
 
 _CSS = """
@@ -36,6 +36,22 @@ def _dashboard_html(students: list[dict], teacher_name: str) -> str:
     return html.replace("/*__STUDENTS_INJECT__*/", inject)
 
 
+def _open_learning(teacher: dict) -> None:
+    st.session_state["samed_teacher_learn"] = True
+    st.session_state["samed_role"] = "teacher"
+    st.session_state["samed_view"] = "dashboard"
+    st.session_state["student_profile"] = {
+        "id": "tchlearn-" + str(teacher.get("id") or ""),
+        "name": teacher.get("name") or "الأستاذ",
+        "grade": 12,
+        "subjects": ["phys", "chem"],
+        "teacher_id": teacher.get("id"),
+        "mode": "teacher_preview",
+    }
+    st.session_state["student_name"] = teacher.get("name") or "الأستاذ"
+    st.rerun()
+
+
 def render_teacher_panel() -> None:
     teacher = st.session_state.get("teacher_profile") or {}
     if not teacher.get("id"):
@@ -45,16 +61,21 @@ def render_teacher_panel() -> None:
 
     st.markdown(_CSS, unsafe_allow_html=True)
     name = teacher.get("name") or "الأستاذ"
-    top, action = st.columns([4, 1])
-    with top:
-        st.markdown(
-            f'<div class="t-head"><span><b>لوحة الأستاذ</b><small>{name} · طلبة قسمك فقط</small></span></div>',
-            unsafe_allow_html=True,
-        )
-    with action:
+    st.markdown(
+        f'<div class="t-head"><span><b>لوحة الأستاذ</b><small>{name} · طلبة قسمك فقط</small></span></div>',
+        unsafe_allow_html=True,
+    )
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        if st.button("المحتوى التعليمي", type="primary", use_container_width=True):
+            _open_learning(teacher)
+    with b2:
+        st.caption("كلمات المرور لا تُعرض. عيّن كلمة جديدة للطالب إن نسيها.")
+    with b3:
         if st.button("تسجيل الخروج", use_container_width=True):
             st.session_state["teacher_profile"] = None
             st.session_state["samed_role"] = None
+            st.session_state["samed_teacher_learn"] = False
             st.session_state["samed_view"] = "home"
             st.rerun()
 
@@ -94,5 +115,25 @@ def render_teacher_panel() -> None:
             st.caption(str(exc)[:240])
     else:
         st.warning("اربط Google Sheets ليظهر طلبة قسمك هنا.")
+
+    st.markdown('<div class="t-card">', unsafe_allow_html=True)
+    st.subheader("إعادة ضبط كلمة مرور طالب")
+    st.caption("لا تُحفظ كلمة المرور كنص ولا تظهر في اللوحة. أعطِ الطالب الكلمة الجديدة مباشرة.")
+    if students:
+        labels = {f"{s.get('name')} ({s.get('id')})": str(s.get("id")) for s in students}
+        with st.form("reset_student_form"):
+            chosen = st.selectbox("الطالب", list(labels.keys()))
+            new_pw = st.text_input("كلمة المرور الجديدة", type="password")
+            new_cf = st.text_input("تأكيد كلمة المرور", type="password")
+            reset_ok = st.form_submit_button("ضبط كلمة المرور", use_container_width=True)
+        if reset_ok:
+            ok, message = reset_student_password(str(teacher["id"]), labels[chosen], new_pw, new_cf)
+            if ok:
+                st.success(message)
+            else:
+                st.error(message)
+    else:
+        st.caption("أضف طلبة أولًا لإعادة ضبط كلمات مرورهم.")
+    st.markdown("</div>", unsafe_allow_html=True)
 
     components.html(_dashboard_html(students, name), height=880, scrolling=True)
