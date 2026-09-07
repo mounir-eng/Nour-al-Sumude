@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-view="overview">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة الإدارة — الطالب الصامد</title>
+<style>
+:root{
+  --bg:#f7f8f6;
+  --paper:#ffffff;
+  --ink:#173b3d;
+  --muted:#6f827e;
+  --line:#dce6e3;
+  --teal:#245e65;
+  --teal-2:#347d78;
+  --teal-dark:#173f44;
+  --gold:#f1bf50;
+  --gold-deep:#c8942a;
+  --phys:#397eb9;
+  --chem:#8460b8;
+  --ok:#2f956f;
+  --ok-soft:#e8f1ec;
+  --warn:#d5803b;
+  --warn-soft:#fbebde;
+  --risk:#c45a52;
+  --risk-soft:#fce9e7;
+  --soft:#eef5f3;
+  --shadow:0 1px 2px rgba(23,63,68,.05),0 8px 24px rgba(23,63,68,.06);
+  --radius:12px;
+  --sidebar:268px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;overflow-x:hidden;max-width:100%}
+.app,.main,.card,.table-wrap,.top p{min-width:0;max-width:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+img{max-width:100%;display:block}
+.app{min-height:100vh;display:grid;grid-template-columns:var(--sidebar) 1fr}
+.sidebar{background:linear-gradient(180deg,#15383d 0%,#1d5156 62%,#2c6b68 100%);color:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 6px 10px}
+.mark{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.12);display:grid;place-items:center;flex:0 0 42px}
+.mark svg{width:26px;height:26px}
+.brand b{display:block;font-size:16px;line-height:1.3}
+.brand small{display:block;color:#cfe2de;font-size:12px;margin-top:2px}
+.nav{display:grid;gap:6px}
+.nav-btn{display:flex;align-items:center;gap:10px;min-height:44px;border:0;border-radius:10px;background:transparent;color:#e7f2ef;padding:10px 12px;text-align:right;font-weight:700;font-size:14px}
+.nav-btn span.icon{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:14px}
+.nav-btn.active,.nav-btn:hover{background:rgba(255,255,255,.12)}
+.nav-btn:focus-visible,.ctrl:focus-visible,.icon-btn:focus-visible,.row:focus-visible,.chip:focus-visible{outline:3px solid rgba(241,191,80,.7);outline-offset:2px}
+.side-note{margin-top:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;font-size:12px;line-height:1.7;color:#d6e7e4;}
+.side-note b{display:block;color:#fff;margin-bottom:4px;font-size:13px}
+.main{min-width:0;padding:24px 28px 40px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.kicker{display:inline-flex;align-items:center;gap:6px;background:#eaf6f2;color:var(--teal);border:1px solid #cce5dd;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800}
+.top h1{margin:8px 0 4px;font-size:30px;line-height:1.3;letter-spacing:-.4px}
+.top p{margin:0;color:var(--muted);font-size:14px;max-width:52ch}
+.admin-chip{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 12px 8px 8px;box-shadow:var(--shadow);min-height:48px}
+.avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(145deg,var(--teal-dark),var(--teal-2));color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px}
+.admin-chip b{display:block;font-size:13px}
+.admin-chip small{display:block;color:var(--muted);font-size:12px}
+kbd{font:700 11px/1 Menlo,Consolas,monospace;background:#eef5f3;border:1px solid #d5e4e0;border-radius:6px;padding:3px 6px;color:var(--teal-dark)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);min-height:96px}
+.kpi .label{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px;font-weight:700}
+.kpi .value{font-size:32px;line-height:1.15;margin:8px 0 4px;letter-spacing:-.6px}
+.kpi .hint{font-size:12px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.9fr);gap:16px;align-items:start}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.card-h h2{margin:0;font-size:17px}
+.card-h p{margin:2px 0 0;color:var(--muted);font-size:12px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctrl,.icon-btn{min-height:44px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 12px}
+.search{min-width:220px;flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 12px}
+.chip{min-height:36px;border:1px solid var(--line);background:#f8fbfa;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;color:#4d6460}
+.chip.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.table-wrap{overflow:auto;max-height:none}
+table{width:100%;border-collapse:collapse}
+table.full{min-width:880px}
+th,td{padding:11px 12px;text-align:right;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:800;background:#fbfcfc;position:sticky;top:0}
+.row{cursor:pointer}
+.row:hover,.row[aria-selected="true"]{background:#f4faf8}
+.who{display:flex;align-items:center;gap:10px}
+.who .avatar{width:38px;height:38px}
+.who b{display:block;font-size:14px}
+.who small{display:block;color:var(--muted);font-size:12px}
+.grade{display:inline-flex;align-items:center;min-height:28px;padding:2px 9px;border-radius:8px;background:#eaf6f2;color:#245e65;font-size:12px;font-weight:800;white-space:nowrap}
+.subs{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:800;border-radius:7px;padding:3px 7px}
+.tag.phys{background:#e8f1f8;color:#245f86}
+.tag.chem{background:#f1ebf8;color:#62458c}
+.progress-cell{display:flex;align-items:center;gap:8px;min-width:150px}
+.bar{width:88px;height:8px;background:#e6eeeb;border-radius:999px;overflow:hidden;flex:0 0 88px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--gold));border-radius:inherit}
+.pct{font-size:12px;font-weight:800;direction:ltr;unicode-bidi:isolate}
+.level{font-size:12px;font-weight:800}
+.badges{display:flex;gap:4px;flex-wrap:nowrap;align-items:center}
+.badge{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:#fff8e6;border:1px solid #efdba5;font-size:12px;flex:0 0 26px}
+.badge-more{font-size:11px;font-weight:800;color:#8a6a22;background:#fff8e6;border-radius:999px;padding:3px 7px}
+.status{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:800}
+.status.ok{background:var(--ok-soft);color:#246b5a}
+.status.mid{background:#eef4f8;color:#2a5f78}
+.status.risk{background:var(--risk-soft);color:#8f3d38}
+.status.warn{background:var(--warn-soft);color:#8a5520}
+.side-card{padding:16px}
+.side-card h2{margin:0 0 12px;font-size:16px}
+.grade-row,.legend-row{display:grid;grid-template-columns:max-content 1fr 18px;gap:8px;align-items:center;margin-bottom:9px;font-size:12px}
+.grade-row{white-space:nowrap}.grade-row span,.grade-row b{white-space:nowrap}
+.gbar{height:8px;background:#e6eeeb;border-radius:999px;overflow:hidden}
+.gbar>i{display:block;height:100%;background:var(--teal-2)}
+.alert{display:flex;gap:10px;padding:10px;border-radius:10px;background:#fff;border:1px solid var(--line);margin-bottom:8px;min-width:0}
+.alert>span:last-child{min-width:0}
+.alert b{display:block;font-size:13px;line-height:1.4}
+.alert small{display:block;color:var(--muted);font-size:12px;line-height:1.5}
+.drawer-bg{position:fixed;inset:0;background:rgba(23,59,61,.28);opacity:0;pointer-events:none;transition:opacity .2s}
+.drawer-bg.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;bottom:0;right:0;width:min(420px,100%);background:#fff;box-shadow:-16px 0 40px rgba(23,63,68,.16);transform:translateX(110%);transition:transform .22s ease;overflow:auto;z-index:20}
+.drawer.open{transform:none}
+.drawer-head{padding:20px 20px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:1}
+.drawer-head .who .avatar{width:48px;height:48px;font-size:16px}
+.close{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.drawer-body{padding:16px 20px 28px}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.meta div{background:var(--soft);border-radius:10px;padding:10px}
+.meta small{display:block;color:var(--muted);font-size:12px}
+.meta b{display:block;margin-top:2px;font-size:14px}
+.stage{margin:10px 0 14px}
+.stage-h{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.stage .bar{width:100%;height:10px;margin:0}
+.badge-list{display:grid;gap:8px}
+.badge-item{display:grid;grid-template-columns:36px 1fr;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+.badge-item.off{opacity:.42;filter:grayscale(.4)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.hidden{display:none!important}
+@media (max-width:1080px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto;flex-direction:column;align-items:stretch;padding:14px;gap:12px}
+  .nav{display:flex;width:100%;overflow-x:auto;min-width:0}
+  .nav-btn{white-space:nowrap;flex:1}
+  .side-note{display:none}
+  .layout,.kpis{grid-template-columns:1fr 1fr}
+  .main{padding:16px}
+  .top h1{font-size:24px}
+  .top p{max-width:100%}
+}
+@media (max-width:700px){
+  .kpis,.layout,.meta{grid-template-columns:1fr}
+  .top{display:block}
+  .admin-chip{margin-top:12px;width:100%}
+  .search{min-width:0;width:100%}
+  table,table.full,table.compact{min-width:0}
+  th,td{white-space:normal}
+  .progress-cell{min-width:0}
+  .bar{width:56px;flex-basis:56px}
+  table.compact th:nth-child(2),table.compact td:nth-child(2){display:none}
+  table.full th:nth-child(3),table.full td:nth-child(3),table.full th:nth-child(5),table.full td:nth-child(5),table.full th:nth-child(6),table.full td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .drawer,.drawer-bg,.nav-btn{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" aria-label="التنقل">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M16 2.8 5.6 7.1v8.1c0 6.4 4.3 11.7 10.4 13.7 6.1-2 10.4-7.3 10.4-13.7V7.1L16 2.8Z" stroke="#fff" stroke-width="1.9"/><path d="M10.2 13.1c2.3-.2 4.2.5 5.8 2 1.6-1.5 3.5-2.2 5.8-2v7.2c-2.5-.2-4.4.5-5.8 2.1-1.4-1.6-3.3-2.3-5.8-2.1v-7.2Z" stroke="#fff" stroke-width="1.7"/></svg>
+      </span>
+      <span><b>الطالب الصامد</b><small id="roleLabel">لوحة تحكم الأدمن</small></span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="overview" type="button"><span class="icon">▣</span> النظرة العامة</button>
+      <button class="nav-btn" data-view="students" type="button"><span class="icon">👤</span> الطلبة المسجّلون</button>
+      <button class="nav-btn" data-view="badges" type="button"><span class="icon">🏅</span> الأوسمة</button>
+    </nav>
+    <div class="side-note">
+      <b>حساب محلي للطالب</b>
+      يسجّل الطالب اسمه وكلمة المرور والصف. كلمات المرور لا تظهر في لوحة الإدارة.
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div>
+        <span class="kicker">إدارة الصفوف · فيزياء وكيمياء</span>
+        <h1 id="pageTitle">نظرة على تقدّم الطلبة</h1>
+        <p id="pageSub">تابع المسجّلين حسب الصف، نسبة إكمال المسار، والأوسمة المكتسبة من حل التمارين.</p>
+      </div>
+      <div class="admin-chip">
+        <span class="avatar">م</span>
+        <span><b>حساب الأدمن</b><small>عرض تجريبي ببيانات نموذجية</small></span>
+      </div>
+    </header>
+
+    <section class="kpis" aria-label="مؤشرات سريعة">
+      <article class="kpi"><div class="label">طلبة مسجّلون <span class="dot" style="background:#2f956f"></span></div><div class="value" id="kpiStudents">0</div><div class="hint">من الصف 6 إلى 12</div></article>
+      <article class="kpi"><div class="label">متوسط التقدم</div><div class="value" id="kpiProgress">0%</div><div class="hint">عبر المسار الحالي</div></article>
+      <article class="kpi"><div class="label">أوسمة ممنوحة</div><div class="value" id="kpiBadges">0</div><div class="hint">كلما حلّ الطالب أكثر</div></article>
+      <article class="kpi"><div class="label">يحتاجون متابعة</div><div class="value" id="kpiRisk">0</div><div class="hint">تقدم أقل من 25%</div></article>
+    </section>
+
+    <section id="view-overview" class="layout">
+      <div class="card">
+        <div class="card-h">
+          <div><h2>آخر نشاط للطلبة</h2><p>اضغط أي صف لفتح ملف التقدم والأوسمة</p></div>
+        </div>
+        <div class="table-wrap" id="overviewTable"></div>
+      </div>
+      <div>
+        <div class="card side-card" style="margin-bottom:12px">
+          <h2>التوزيع حسب الصف</h2>
+          <div id="gradeBars"></div>
+        </div>
+        <div class="card side-card">
+          <h2>تنبيهات المتابعة</h2>
+          <div id="alerts"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-students" class="hidden">
+      <div class="card">
+        <div class="card-h">
+          <div><h2>الطلبة المسجّلون</h2><p>الاسم، الصف الدراسي، ومستوى التقدم</p></div>
+          <div class="toolbar">
+            <input class="ctrl search" id="q" type="search" placeholder="ابحث بالاسم…" aria-label="بحث عن طالب">
+            <select class="ctrl" id="gradeFilter" aria-label="تصفية الصف">
+              <option value="all">كل الصفوف</option>
+            </select>
+            <select class="ctrl" id="statusFilter" aria-label="تصفية الحالة">
+              <option value="all">كل الحالات</option>
+              <option value="ok">متفوق</option>
+              <option value="mid">منتظم</option>
+              <option value="warn">متوسط</option>
+              <option value="risk">متعثر</option>
+            </select>
+          </div>
+        </div>
+        <div class="chips" id="gradeChips"></div>
+        <div class="table-wrap" id="studentsTable"></div>
+      </div>
+    </section>
+
+    <section id="view-badges" class="hidden">
+      <div class="card">
+        <div class="card-h"><div><h2>الأوسمة في المنصة</h2><p>تُمنح تلقائيًا عند التقدم في التمارين</p></div></div>
+        <div class="table-wrap" id="badgeTable"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-labelledby="drawerName">
+  <div class="drawer-head">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div class="who"><span class="avatar" id="dAvatar"></span><span><b id="drawerName"></b><small id="drawerMeta"></small></span></div>
+      <button class="close" id="closeDrawer" type="button" aria-label="إغلاق">✕</button>
+    </div>
+    <div class="meta">
+      <div><small>الصف الدراسي</small><b id="dGrade"></b></div>
+      <div><small>المستوى</small><b id="dLevel"></b></div>
+      <div><small>التقدم العام</small><b id="dProgress"></b></div>
+      <div><small>آخر نشاط</small><b id="dLast"></b></div>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <h3 style="margin:0 0 8px;font-size:15px">مسار التمارين</h3>
+    <div id="dStages"></div>
+    <h3 style="margin:18px 0 8px;font-size:15px">الأوسمة</h3>
+    <div class="badge-list" id="dBadges"></div>
+  </div>
+</aside>
+
+<script>
+/*__STUDENTS_INJECT__*/
+const GRADE = {6:"السادس",7:"السابع",8:"الثامن",9:"التاسع",10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"};
+const BADGES = [
+  {id:"first", icon:"🏅", name:"أول تمرين مكتمل", how:"بعد إنهاء أول تمرين"},
+  {id:"nohint", icon:"⭐", name:"إتقان بلا تلميحات", how:"حل بدون طلب تلميح"},
+  {id:"streak3", icon:"🔥", name:"3 إجابات متتالية", how:"ثلاث إجابات صحيحة متتالية"},
+  {id:"streak5", icon:"⚡", name:"5 إجابات متتالية متقنة", how:"خمس إجابات صحيحة متتالية"},
+  {id:"proof", icon:"🧠", name:"عقل تحليلي", how:"إتقان سؤال برهان"},
+  {id:"all", icon:"🎓", name:"إتقان كامل", how:"إكمال كل تمارين الوحدة"}
+];
+const STAGES = [
+  {key:"found", title:"مدخل تأسيسي"},
+  {key:"review", title:"مراجعة الوحدة"},
+  {key:"book", title:"تمارين الكتاب"},
+  {key:"extra", title:"تدريب إضافي"}
+];
+function levelOf(xp){
+  if(xp<20) return {name:"🌱 مبتدئ", cls:"warn"};
+  if(xp<60) return {name:"📘 متدرب", cls:"mid"};
+  if(xp<120) return {name:"🚀 متمكن", cls:"ok"};
+  return {name:"🏆 خبير", cls:"ok"};
+}
+function statusOf(p){
+  if(p>=75) return {id:"ok", label:"متفوق"};
+  if(p>=45) return {id:"mid", label:"منتظم"};
+  if(p>=25) return {id:"warn", label:"متوسط"};
+  return {id:"risk", label:"متعثر"};
+}
+const DEMO_STUDENTS = [
+  {id:1,name:"مريم القاسمي",initials:"مق",grade:12,subjects:["physics","chemistry"],xp:148,progress:91,last:"اليوم 18:40",stages:{found:100,review:100,book:90,extra:74},badges:["first","nohint","streak3","streak5","proof","all"]},
+  {id:2,name:"ياسمين العلوي",initials:"يع",grade:12,subjects:["physics","chemistry"],xp:126,progress:82,last:"اليوم 16:12",stages:{found:100,review:88,book:80,extra:60},badges:["first","nohint","streak3","streak5","proof"]},
+  {id:3,name:"هند بوعلام",initials:"هب",grade:12,subjects:["physics"],xp:98,progress:73,last:"أمس",stages:{found:80,review:85,book:70,extra:55},badges:["first","streak3","nohint"]},
+  {id:4,name:"آدم بن صالح",initials:"اب",grade:12,subjects:["physics"],xp:84,progress:64,last:"أمس",stages:{found:70,review:72,book:60,extra:48},badges:["first","streak3"]},
+  {id:5,name:"نور الهدى بن عمر",initials:"نع",grade:12,subjects:["chemistry"],xp:71,progress:55,last:"منذ يومين",stages:{found:62,review:60,book:50,extra:40},badges:["first","streak3"]},
+  {id:6,name:"سلمى فرحات",initials:"سف",grade:11,subjects:["physics","chemistry"],xp:52,progress:48,last:"اليوم 09:20",stages:{found:55,review:50,book:42,extra:30},badges:["first"]},
+  {id:7,name:"لينا منصور",initials:"لم",grade:11,subjects:["chemistry"],xp:44,progress:41,last:"منذ 3 أيام",stages:{found:50,review:44,book:35,extra:20},badges:["first"]},
+  {id:8,name:"سامي الزين",initials:"سز",grade:8,subjects:["physics","chemistry"],xp:36,progress:33,last:"منذ 4 أيام",stages:{found:40,review:35,book:28,extra:18},badges:["first"]},
+  {id:9,name:"أنس الطاهر",initials:" أط",grade:12,subjects:["physics","chemistry"],xp:28,progress:28,last:"منذ أسبوع",stages:{found:40,review:30,book:22,extra:10},badges:["first"]},
+  {id:10,name:"يوسف الراشدي",initials:"ير",grade:10,subjects:["physics"],xp:16,progress:18,last:"منذ 8 أيام",stages:{found:30,review:18,book:10,extra:0},badges:[]},
+  {id:11,name:"إياد شريف",initials:"إش",grade:7,subjects:["physics"],xp:12,progress:12,last:"منذ 10 أيام",stages:{found:20,review:12,book:5,extra:0},badges:[]},
+  {id:12,name:"كريم حداد",initials:"كح",grade:9,subjects:["physics"],xp:8,progress:7,last:"منذ 12 يومًا",stages:{found:12,review:8,book:0,extra:0},badges:[]}
+]
+const students = (window.SAMED_LIVE === true)
+  ? (Array.isArray(window.SAMED_STUDENTS) ? window.SAMED_STUDENTS : [])
+  : DEMO_STUDENTS;
+
+const $ = s => document.querySelector(s);
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+function subjectTags(list){
+  return list.map(s=> s==="physics" ? `<span class="tag phys">فيزياء</span>` : `<span class="tag chem">كيمياء</span>`).join("");
+}
+function badgeIcons(ids){
+  if(!ids.length) return `<span style="color:var(--muted);font-size:12px">—</span>`;
+  const shown = ids.slice(0,3);
+  const extra = ids.length - shown.length;
+  return `<div class="badges">${shown.map(id=>{const b=BADGES.find(x=>x.id===id);return `<span class="badge" title="${esc(b.name)}">${b.icon}</span>`}).join("")}${extra>0?`<span class="badge-more">+${extra}</span>`:""}</div>`;
+}
+function studentRow(s, compact){
+  const st = statusOf(s.progress);
+  const lv = levelOf(s.xp);
+  const progress = `<div class="progress-cell"><span class="bar"><i style="width:${s.progress}%"></i></span><span class="pct">${s.progress}%</span></div>`;
+  if(compact){
+    return `<tr class="row" tabindex="0" data-id="${s.id}">
+      <td><div class="who"><span class="avatar">${esc(s.initials.trim())}</span><span><b>${esc(s.name)}</b><small>${s.xp} نقطة · ${lv.name}</small></span></div></td>
+      <td><span class="grade">${s.grade} · ${GRADE[s.grade]}</span></td>
+      <td>${progress}</td>
+      <td><span class="status ${st.id}">${st.label}</span></td>
+    </tr>`;
+  }
+  return `<tr class="row" tabindex="0" data-id="${s.id}">
+    <td><div class="who"><span class="avatar">${esc(s.initials.trim())}</span><span><b>${esc(s.name)}</b><small>${s.xp} نقطة</small></span></div></td>
+    <td><span class="grade">${s.grade} · ${GRADE[s.grade]}</span></td>
+    <td><div class="subs">${subjectTags(s.subjects)}</div></td>
+    <td>${progress}</td>
+    <td class="level">${lv.name}</td>
+    <td>${badgeIcons(s.badges)}</td>
+    <td><span class="status ${st.id}">${st.label}</span></td>
+  </tr>`;
+}
+function tableHTML(list, compact){
+  if(!list.length) return `<div class="empty">لا يوجد طلبة مطابقون للبحث أو التصفية.</div>`;
+  const head = compact
+    ? `<tr><th>الطالب</th><th>الصف الدراسي</th><th>مستوى التقدم</th><th>الحالة</th></tr>`
+    : `<tr><th>الطالب</th><th>الصف الدراسي</th><th>المواد</th><th>مستوى التقدم</th><th>المستوى</th><th>الأوسمة</th><th>الحالة</th></tr>`;
+  return `<table class="${compact?"compact":"full"}"><thead>${head}</thead><tbody>${list.map(s=>studentRow(s, compact)).join("")}</tbody></table>`;
+}
+function bindRows(root){
+  root.querySelectorAll(".row").forEach(row=>{
+    const open=()=>openStudent(row.dataset.id);
+    row.addEventListener("click",open);
+    row.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}});
+  });
+}
+function filtered(){
+  const q = ($("#q")?.value||"").trim();
+  const g = $("#gradeFilter")?.value||"all";
+  const st = $("#statusFilter")?.value||"all";
+  return students.filter(s=>{
+    const okQ = !q || s.name.includes(q);
+    const okG = g==="all" || String(s.grade)===g;
+    const okS = st==="all" || statusOf(s.progress).id===st;
+    return okQ && okG && okS;
+  });
+}
+function renderKPIs(){
+  $("#kpiStudents").textContent = students.length;
+  const avg = students.length ? Math.round(students.reduce((a,s)=>a+(Number(s.progress)||0),0)/students.length) : 0;
+  $("#kpiProgress").textContent = avg + "%";
+  $("#kpiBadges").textContent = students.reduce((a,s)=>a+(s.badges||[]).length,0);
+  $("#kpiRisk").textContent = students.filter(s=>s.progress<25).length;
+}
+function renderOverview(){
+  const recent = [...students].sort((a,b)=>a.progress<b.progress?1:-1).slice(0,5);
+  $("#overviewTable").innerHTML = tableHTML(recent, true);
+  bindRows($("#overviewTable"));
+  const counts = {};
+  students.forEach(s=>counts[s.grade]=(counts[s.grade]||0)+1);
+  const max = Math.max(...Object.values(counts), 1);
+  $("#gradeBars").innerHTML = Object.keys(GRADE).map(g=>{
+    const n = counts[g]||0;
+    if(!n) return "";
+    return `<div class="grade-row"><span>${GRADE[g]}</span><div class="gbar"><i style="width:${n/max*100}%"></i></div><b>${n}</b></div>`;
+  }).join("");
+  const risk = students.filter(s=>s.progress<25);
+  $("#alerts").innerHTML = risk.length ? risk.map(s=>`<div class="alert"><span class="avatar">${esc(s.initials.trim())}</span><span><b>${esc(s.name)}</b><small>الصف ${GRADE[s.grade]} — تقدم ${s.progress}% — يحتاج متابعة</small></span></div>`).join("") : `<div class="alert"><span><b>لا تنبيهات</b><small>كل الطلبة فوق حد المتابعة</small></span></div>`;
+}
+function renderStudents(){
+  const list = filtered();
+  $("#studentsTable").innerHTML = tableHTML(list, false);
+  bindRows($("#studentsTable"));
+}
+function renderBadges(){
+  const rows = BADGES.map(b=>{
+    const holders = students.filter(s=>(s.badges||[]).includes(b.id));
+    return `<tr>
+      <td><div class="who"><span class="badge">${b.icon}</span><span><b>${esc(b.name)}</b><small>${esc(b.how)}</small></span></div></td>
+      <td><b>${holders.length}</b> طالب</td>
+      <td style="font-size:13px;color:var(--muted)">${holders.map(s=>esc(s.name)).join("، ")||"—"}</td>
+    </tr>`;
+  }).join("");
+  $("#badgeTable").innerHTML = `<table><thead><tr><th>الوسام</th><th>الممنوحون</th><th>الأسماء</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function openStudent(id){
+  const s = students.find(x=>String(x.id)===String(id)); if(!s) return;
+  const st = statusOf(s.progress); const lv = levelOf(s.xp);
+  $("#dAvatar").textContent = s.initials.trim();
+  $("#drawerName").textContent = s.name;
+  $("#drawerMeta").textContent = s.subjects.map(x=>x==="physics"?"فيزياء":"كيمياء").join(" · ") + " · " + s.xp + " نقطة";
+  $("#dGrade").textContent = "الصف " + GRADE[s.grade];
+  $("#dLevel").textContent = lv.name;
+  $("#dProgress").textContent = s.progress + "% · " + st.label;
+  $("#dLast").textContent = s.last;
+  $("#dStages").innerHTML = STAGES.map(st=>{const v=s.stages[st.key];return `<div class="stage"><div class="stage-h"><span>${st.title}</span><span class="pct">${v}%</span></div><span class="bar"><i style="width:${v}%"></i></span></div>`}).join("");
+  $("#dBadges").innerHTML = BADGES.map(b=>{
+    const on = (s.badges||[]).includes(b.id);
+    return `<div class="badge-item ${on?"":"off"}"><span class="badge">${b.icon}</span><span><b>${b.name}</b><small style="color:var(--muted)">${on?"مكتسب":"لم يُكتسب بعد"} · ${b.how}</small></span></div>`;
+  }).join("");
+  $("#drawer").classList.add("open");
+  $("#drawerBg").classList.add("open");
+  $("#drawer").setAttribute("aria-hidden","false");
+  $("#closeDrawer").focus();
+}
+function closeDrawer(){
+  $("#drawer").classList.remove("open");
+  $("#drawerBg").classList.remove("open");
+  $("#drawer").setAttribute("aria-hidden","true");
+}
+function showView(name){
+  ["overview","students","badges"].forEach(v=>{
+    const page=$("#view-"+v); if(page) page.classList.toggle("hidden", v!==name);
+    const btn=document.querySelector('.nav-btn[data-view="'+v+'"]'); if(btn) btn.classList.toggle("active", v===name);
+  });
+  const titles = {
+    overview:["نظرة على تقدّم الطلبة","تابع المسجّلين حسب الصف، نسبة إكمال المسار، والأوسمة المكتسبة من حل التمارين."],
+    students:["الطلبة المسجّلون","الاسم، الصف الدراسي، وكل مرحلة من مسار التمارين."] ,
+    badges:["أوسمة التقدّم","تُمنح كلما تقدّم الطالب في حل التمارين دون أخطاء أو تلميحات."]
+  };
+  $("#pageTitle").textContent = titles[name][0];
+  $("#pageSub").textContent = titles[name][1];
+}
+function initFilters(){
+  const sel = $("#gradeFilter");
+  Object.entries(GRADE).forEach(([k,v])=>{
+    const o=document.createElement("option"); o.value=k; o.textContent="الصف "+v; sel.appendChild(o);
+  });
+  const chips = $("#gradeChips");
+  chips.innerHTML = `<button class="chip active" data-grade="all" type="button">الكل</button>` + Object.entries(GRADE).map(([k,v])=>`<button class="chip" data-grade="${k}" type="button">${v}</button>`).join("");
+  chips.addEventListener("click",e=>{
+    const btn=e.target.closest(".chip"); if(!btn) return;
+    chips.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active",c===btn));
+    sel.value = btn.dataset.grade;
+    renderStudents();
+  });
+  sel.addEventListener("change",()=>{
+    chips.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active", c.dataset.grade===sel.value));
+    renderStudents();
+  });
+  $("#q").addEventListener("input", renderStudents);
+  $("#statusFilter").addEventListener("change", renderStudents);
+}
+document.querySelectorAll(".nav-btn").forEach(btn=>btn.addEventListener("click",()=>showView(btn.dataset.view)));
+$("#closeDrawer").addEventListener("click", closeDrawer);
+$("#drawerBg").addEventListener("click", closeDrawer);
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeDrawer()});
+function applySamedRole(){
+  var role = window.SAMED_ROLE || "admin";
+  document.body.setAttribute("data-role", role);
+  var label = document.getElementById("roleLabel");
+  if(role==="teacher"){
+    if(label) label.textContent = "لوحة تحكم الأستاذ";
+    var kpis=document.querySelector(".kpis"); if(kpis) kpis.style.display="none";
+    var gb=document.getElementById("gradeBars"); if(gb){ var card=gb.closest(".card"); if(card) card.style.display="none"; }
+    var ov=document.querySelector('.nav-btn[data-view="overview"]'); if(ov) ov.style.display="none";
+    var chip=document.querySelector(".admin-chip b"); if(chip) chip.textContent = window.SAMED_TEACHER_NAME || "الأستاذ";
+    var small=document.querySelector(".admin-chip small"); if(small) small.textContent="أستاذ القسم";
+    var kicker=document.querySelector(".kicker"); if(kicker) kicker.textContent="طلبة القسم";
+    showView("students");
+  } else {
+    if(label) label.textContent = "لوحة تحكم الأدمن";
+  }
+}
+initFilters();
+renderKPIs();
+renderOverview();
+renderStudents();
+renderBadges();
+applySamedRole();
+const boot = document.documentElement.dataset.view || (location.hash||"").replace("#","");
+if(boot==="students"||boot==="badges") showView(boot);
+if(boot==="drawer"){ showView("students"); openStudent(1); }
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+ربط لوحة الأدمن بـ Streamlit Cloud
+====================================
+
+ما الذي أضيفناه
+- عند تسجيل الطالب يُحفَظ الاسم والصف والمواد في Google Sheets.
+- عند فتح لوحة الطالب يُحدَّث التقدم والأوسمة.
+- كلمات المرور لا تُرسَل ولا تظهر في الجدول ولا في لوحة الأدمن.
+- صفحة الأدمن مخفية: https://موقعك.streamlit.app/?admin=1
+
+1) رفع الملفات إلى GitHub (جذر المشروع نفسه حيث app.py)
+   - app.py
+   - student_cloud_sync.py
+   - admin_panel.py
+   - admin_dashboard.html
+   - progress_bridge_component/index.html
+   - requirements.txt
+
+2) أنشئ جدول Google باسم مثلاً: طلاب الطالب الصامد
+   الأعمدة في الصف الأول (أو اتركها فارغة وسيُنشئها التطبيق):
+   id | name | grade | subjects | xp | progress | badges | found | review | book | extra | last_seen
+
+3) Google Cloud
+   - أنشئ مشروعاً أو استخدم موجوداً.
+   - فعّل Google Sheets API و Google Drive API.
+   - IAM → Service accounts → أنشئ حساب خدمة → Keys → JSON.
+   - شارك جدول Google مع إيميل حساب الخدمة (client_email) بصلاحية محرر.
+
+4) Streamlit Cloud → Manage app → Settings → Secrets
+   انسخ من .streamlit/secrets.toml.example:
+   - [admin] password
+   - [gsheets] spreadsheet = رابط الجدول أو معرفه
+   - [gcp_service_account] = محتوى ملف JSON
+
+5) Reboot app ثم افتح:
+   https://موقعك.streamlit.app/?admin=1
+
+ملاحظة
+- الطالب الذي يدرس أوفلاين فقط يجب أن يفتح الموقع الأونلاين بعدها ليصل تقدمه للأدمن.
+- لا تضع صفحة الأدمن في مجلد pages حتى لا تظهر للطلبة.
