@@ -3442,7 +3442,17 @@ if st.session_state.get("samed_view","home")=="home":
             st.rerun()
     st.stop()
 if st.session_state.get("samed_view")=="onboarding": _render_onboarding()
-if st.session_state.get("samed_view")=="dashboard": _render_dashboard()
+if st.session_state.get("samed_view")=="dashboard":
+    if st.session_state.get("samed_teacher_learn") and st.session_state.get("teacher_profile"):
+        t1, t2 = st.columns([3, 1])
+        with t1:
+            st.info("أنت تتصفح المحتوى التعليمي بحساب الأستاذ.")
+        with t2:
+            if st.button("لوحة الأستاذ", type="primary", use_container_width=True, key="teacher_back_from_learn"):
+                st.session_state["samed_teacher_learn"] = False
+                st.session_state["samed_view"] = "teacher_dashboard"
+                st.rerun()
+    _render_dashboard()
 
 render_exercise_header_v18(
     subject="الفيزياء", track="تدريب إضافي", unit_title="الزخم الخطي والدفع",
