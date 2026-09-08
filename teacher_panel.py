@@ -20,6 +20,7 @@ section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContaine
 .tp-hero b{display:block;font-size:22px;line-height:1.4}
 .tp-hero small{display:block;color:#d6e7e4;font-size:12px;margin-top:4px}
 .tp-mark{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.12);font-size:24px;flex:0 0 auto}
+.tp-add{width:52px;height:52px;border-radius:16px;border:1px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:28px;line-height:1;display:grid;place-items:center}
 .tp-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 16px}
 .tp-kpi{background:#fff;border:1px solid #dce6e3;border-radius:18px;padding:16px 18px;box-shadow:0 8px 22px rgba(23,63,68,.05)}
 .tp-kpi span{display:block;color:#6f827e;font-size:12px;font-weight:800}
@@ -93,7 +94,7 @@ def _class_stats(students: list[dict]) -> tuple[int, int, int]:
 
 def _render_manage(teacher: dict, students: list[dict]) -> None:
     st.markdown('<div class="tp-card">', unsafe_allow_html=True)
-    st.markdown("<h3>إضافة طالب</h3><p>عيّن الاسم وكلمة المرور ثم أعطه البيانات سرًا. لا تظهر كلمات المرور لاحقًا.</p>", unsafe_allow_html=True)
+    st.markdown("<h3>إضافة طالب جديد</h3><p>عيّن الاسم وكلمة المرور ثم أعطه البيانات سرًا. لا تظهر كلمات المرور لاحقًا.</p>", unsafe_allow_html=True)
     with st.form("add_student_form"):
         c1, c2 = st.columns(2)
         with c1:
@@ -164,37 +165,52 @@ def render_teacher_panel() -> None:
         st.warning("اربط Google Sheets ليظهر طلبة قسمك هنا.")
 
     count, avg, badges = _class_stats(students)
-    st.markdown(
-        f'<div class="tp-hero"><div style="display:flex;gap:14px;align-items:center">'
-        f'<span class="tp-mark">🛡️</span><span><b>لوحة الأستاذ</b><small>{name} · متابعة قسمك فقط</small></span></div></div>',
-        unsafe_allow_html=True,
-    )
+    if view == "manage":
+        st.markdown(
+            f'<div class="tp-hero"><div style="display:flex;gap:14px;align-items:center">'
+            f'<span class="tp-mark">⚙️</span><span><b>إعدادات القسم</b><small>{name} · إضافة طالب أو تغيير كلمة المرور</small></span></div></div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<div class="tp-hero"><div style="display:flex;gap:14px;align-items:center">'
+            f'<span class="tp-mark">🛡️</span><span><b>لوحة الأستاذ</b><small>{name} · متابعة قسمك فقط</small></span></div></div>',
+            unsafe_allow_html=True,
+        )
 
-    a1, a2, a3, a4 = st.columns(4)
-    with a1:
-        if view == "home":
+    if view == "home":
+        a1, a2, a3, a4, a5 = st.columns([1.4, 0.7, 1.1, 1, 1])
+        with a1:
             if st.button("📚 المحتوى التعليمي", type="primary", use_container_width=True):
                 _open_learning(teacher)
-        else:
-            if st.button("→ عودة لمتابعة القسم", type="primary", use_container_width=True):
-                st.session_state["teacher_panel_view"] = "home"
-                st.rerun()
-    with a2:
-        if view == "home":
-            if st.button("⚙️ إدارة القسم", use_container_width=True):
+        with a2:
+            if st.button("➕", help="إضافة طالب", use_container_width=True):
                 st.session_state["teacher_panel_view"] = "manage"
                 st.rerun()
-        else:
-            st.caption("إضافة الطلبة وتغيير كلمات المرور من هنا فقط.")
-    with a3:
-        if st.button("الرئيسية", use_container_width=True):
-            st.session_state["samed_view"] = "home"
-            st.rerun()
-    with a4:
-        if st.button("تسجيل الخروج", use_container_width=True):
-            _logout()
-
-    if view == "manage":
+        with a3:
+            if st.button("إعدادات القسم", use_container_width=True):
+                st.session_state["teacher_panel_view"] = "manage"
+                st.rerun()
+        with a4:
+            if st.button("الرئيسية", use_container_width=True):
+                st.session_state["samed_view"] = "home"
+                st.rerun()
+        with a5:
+            if st.button("تسجيل الخروج", use_container_width=True):
+                _logout()
+    else:
+        b1, b2, b3 = st.columns(3)
+        with b1:
+            if st.button("→ عودة للوحة الأستاذ", type="primary", use_container_width=True):
+                st.session_state["teacher_panel_view"] = "home"
+                st.rerun()
+        with b2:
+            if st.button("الرئيسية", use_container_width=True):
+                st.session_state["samed_view"] = "home"
+                st.rerun()
+        with b3:
+            if st.button("تسجيل الخروج", use_container_width=True):
+                _logout()
         _render_manage(teacher, students)
         return
 
@@ -207,7 +223,7 @@ def render_teacher_panel() -> None:
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<div class="tp-card"><h3>نشاط الطلبة</h3><p>مستوى التقدم والأوسمة لطلبة قسمك. لإضافة طالب أو تغيير كلمة مروره استخدم «إدارة القسم».</p></div>',
+        '<div class="tp-card"><h3>نشاط الطلبة</h3><p>مستوى التقدم والأوسمة لطلبة قسمك. لإضافة طالب أو تغيير كلمة مروره اضغط أيقونة ➕ أو افتح إعدادات القسم.</p></div>',
         unsafe_allow_html=True,
     )
     components.html(_dashboard_html(students, name), height=820, scrolling=True)
