@@ -1,4 +1,4 @@
-"""لوحة الأستاذ: متابعة القسم، وإدارة الطلبة من شاشة مستقلة."""
+"""لوحة الأستاذ: متابعة القسم، وإضافة الطلبة من صفحة إعدادات مستقلة."""
 from __future__ import annotations
 
 import json
@@ -10,27 +10,76 @@ import streamlit.components.v1 as components
 from accounts import add_student_for_teacher, reset_student_password
 from student_cloud_sync import is_configured, list_students
 
-_CSS = """
-<style id="samed-teacher-panel-v2">
-html,body,.stApp,[data-testid="stAppViewContainer"],.block-container{direction:rtl!important;text-align:right!important;font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important}
-.stApp,[data-testid="stAppViewContainer"]{background:#f4f7f6!important;color:#173b3d!important}
-[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}
-section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContainer"]{max-width:1180px!important;padding:18px 16px 28px!important}
-.tp-hero{display:flex;justify-content:space-between;gap:16px;align-items:center;background:linear-gradient(135deg,#173f44,#245e65 62%,#347d78);color:#fff;border-radius:22px;padding:20px 22px;margin-bottom:16px;box-shadow:0 16px 36px rgba(23,63,68,.16)}
-.tp-hero b{display:block;font-size:22px;line-height:1.4}
-.tp-hero small{display:block;color:#d6e7e4;font-size:12px;margin-top:4px}
-.tp-mark{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.12);font-size:24px;flex:0 0 auto}
-.tp-add{width:52px;height:52px;border-radius:16px;border:1px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-size:28px;line-height:1;display:grid;place-items:center}
+_CSS = r"""
+<style id="samed-teacher-panel-v3">
+html,body,.stApp,[data-testid="stAppViewContainer"],.block-container{
+  direction:rtl!important;text-align:right!important;
+  font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important
+}
+.stApp,[data-testid="stAppViewContainer"]{background:#f3f7f6!important;color:#16383b!important}
+[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],
+section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}
+section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContainer"]{
+  max-width:1160px!important;padding:20px 16px 32px!important
+}
+.tp-hero{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:linear-gradient(135deg,#14383d 0%,#1f585e 58%,#2f7a76 120%);
+  color:#fff;border-radius:24px;padding:22px 24px;margin-bottom:14px;
+  box-shadow:0 18px 40px rgba(20,56,61,.18)
+}
+.tp-hero-copy{display:flex;align-items:center;gap:14px}
+.tp-mark{
+  width:54px;height:54px;border-radius:16px;flex:0 0 auto;
+  display:grid;place-items:center;background:rgba(255,255,255,.12)
+}
+.tp-hero b{display:block;font-size:24px;line-height:1.35;letter-spacing:-.3px}
+.tp-hero small{display:block;margin-top:4px;color:#d5ece8;font-size:13px;font-weight:700}
 .tp-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 16px}
-.tp-kpi{background:#fff;border:1px solid #dce6e3;border-radius:18px;padding:16px 18px;box-shadow:0 8px 22px rgba(23,63,68,.05)}
-.tp-kpi span{display:block;color:#6f827e;font-size:12px;font-weight:800}
-.tp-kpi b{display:block;font-size:28px;margin-top:4px;color:#173f44}
-.tp-card{background:#fff;border:1px solid #dce6e3;border-radius:20px;padding:18px 18px 8px;margin-bottom:14px;box-shadow:0 8px 22px rgba(23,63,68,.05)}
-.tp-card h3{margin:0 0 4px;font-size:18px}
-.tp-card p{margin:0 0 12px;color:#6f827e;font-size:13px;line-height:1.8}
-.stButton>button{border-radius:12px!important;min-height:44px!important;font-weight:800!important}
-.stFormSubmitButton>button{background:#173f44!important;color:#fff!important;border:0!important;border-radius:12px!important;min-height:46px!important}
-@media(max-width:800px){.tp-hero{display:grid}.tp-kpis{grid-template-columns:1fr}}
+.tp-kpi{
+  background:#fff;border:1px solid #dbe7e4;border-radius:18px;padding:16px 18px;
+  box-shadow:0 8px 20px rgba(22,56,61,.05)
+}
+.tp-kpi span{display:block;color:#6a7f7b;font-size:12px;font-weight:800}
+.tp-kpi b{display:block;margin-top:6px;color:#14383d;font-size:28px;line-height:1}
+.tp-card{
+  background:#fff;border:1px solid #dbe7e4;border-radius:22px;
+  padding:20px 20px 8px;margin-bottom:14px;box-shadow:0 10px 24px rgba(22,56,61,.05)
+}
+.tp-card h3{margin:0 0 6px;font-size:20px}
+.tp-card p.lead{margin:0 0 14px;color:#6a7f7b;font-size:13px;line-height:1.85}
+.tp-section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.tp-section-icon{
+  width:44px;height:44px;border-radius:14px;flex:0 0 auto;
+  display:grid;place-items:center;background:#eaf6f3;color:#1f585e
+}
+.tp-hint{
+  display:flex;gap:8px;align-items:flex-start;background:#fff8e8;border:1px solid #eedcae;
+  border-radius:14px;padding:11px 12px;color:#735b20;font-size:12px;line-height:1.8;margin:0 0 8px
+}
+.stButton>button{
+  border-radius:14px!important;min-height:48px!important;font-weight:800!important;
+  border:1px solid #d5e3e0!important;background:#fff!important;color:#16383b!important
+}
+.st-key-tp_learn button{
+  background:linear-gradient(135deg,#1f585e,#2f7a76)!important;color:#fff!important;border:0!important
+}
+.st-key-tp_add_student button{
+  background:#fff!important;color:#14383d!important;border:1px solid #cfe0dc!important;
+  box-shadow:0 8px 18px rgba(22,56,61,.06)!important
+}
+.st-key-tp_back button{
+  background:linear-gradient(135deg,#1f585e,#2f7a76)!important;color:#fff!important;border:0!important
+}
+.stFormSubmitButton>button{
+  background:#14383d!important;color:#fff!important;border:0!important;
+  border-radius:14px!important;min-height:48px!important;font-weight:800!important
+}
+.stTextInput label,.stSelectbox label,.stMultiSelect label{font-weight:800!important;font-size:13px!important;color:#16383b!important}
+.stTextInput input,.stSelectbox [data-baseweb="select"]>div{min-height:46px!important;border-radius:12px!important}
+@media(max-width:800px){
+  .tp-hero{display:grid}.tp-kpis{grid-template-columns:1fr}
+}
 </style>
 """
 
@@ -92,52 +141,77 @@ def _class_stats(students: list[dict]) -> tuple[int, int, int]:
     return count, int(round(progress / count)), badges
 
 
-def _render_manage(teacher: dict, students: list[dict]) -> None:
-    st.markdown('<div class="tp-card">', unsafe_allow_html=True)
-    st.markdown("<h3>إضافة طالب جديد</h3><p>عيّن الاسم وكلمة المرور ثم أعطه البيانات سرًا. لا تظهر كلمات المرور لاحقًا.</p>", unsafe_allow_html=True)
-    with st.form("add_student_form"):
-        c1, c2 = st.columns(2)
-        with c1:
-            student_name = st.text_input("اسم الطالب")
-            grade = st.selectbox("الصف الدراسي", list(range(6, 13)), index=6)
-        with c2:
-            password = st.text_input("كلمة مرور الطالب", type="password")
-            confirm = st.text_input("تأكيد كلمة المرور", type="password")
-        subjects = st.multiselect("المواد", ["فيزياء", "كيمياء"], default=["فيزياء", "كيمياء"])
-        submitted = st.form_submit_button("حفظ الطالب", type="primary", use_container_width=True)
-    if submitted:
-        mapped = []
-        if "فيزياء" in subjects:
-            mapped.append("phys")
-        if "كيمياء" in subjects:
-            mapped.append("chem")
-        ok, message = add_student_for_teacher(teacher["id"], student_name, int(grade), mapped or ["phys"], password, confirm)
-        if ok:
-            st.success(message)
-            st.session_state["teacher_panel_view"] = "home"
-            st.rerun()
-        else:
-            st.error(message)
-    st.markdown("</div>", unsafe_allow_html=True)
+def _hero(title: str, subtitle: str, icon: str) -> None:
+    st.markdown(
+        f'<div class="tp-hero"><div class="tp-hero-copy">'
+        f'<span class="tp-mark">{icon}</span>'
+        f'<span><b>{title}</b><small>{subtitle}</small></span></div></div>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown('<div class="tp-card">', unsafe_allow_html=True)
-    st.markdown("<h3>تغيير كلمة مرور طالب</h3><p>اختر الطالب وعيّن كلمة جديدة. أعطِه الكلمة مباشرة، فهي لا تُعرض في اللوحة.</p>", unsafe_allow_html=True)
-    if students:
-        labels = {str(s.get("name") or s.get("id")): str(s.get("id")) for s in students}
-        with st.form("reset_student_form"):
-            chosen = st.selectbox("الطالب", list(labels.keys()))
-            new_pw = st.text_input("كلمة المرور الجديدة", type="password")
-            new_cf = st.text_input("تأكيد كلمة المرور", type="password")
-            reset_ok = st.form_submit_button("حفظ الكلمة الجديدة", use_container_width=True)
-        if reset_ok:
-            ok, message = reset_student_password(str(teacher["id"]), labels[chosen], new_pw, new_cf)
+
+def _render_settings(teacher: dict, students: list[dict]) -> None:
+    left, right = st.columns(2, gap="large")
+    with left:
+        st.markdown(
+            '<div class="tp-card"><div class="tp-section-head">'
+            '<span class="tp-section-icon">👤+</span>'
+            '<span><h3>إضافة طالب</h3>'
+            '<p class="lead">أنشئ حسابًا لطالب القسم. أعطه الاسم وكلمة المرور بنفسك؛ لن تظهر الكلمة هنا بعد الحفظ.</p></span>'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+        with st.form("add_student_form"):
+            student_name = st.text_input("اسم الطالب", placeholder="مثال: أحمد خالد")
+            grade = st.selectbox("الصف الدراسي", list(range(6, 13)), index=6)
+            subjects = st.multiselect("المواد", ["فيزياء", "كيمياء"], default=["فيزياء", "كيمياء"])
+            password = st.text_input("كلمة المرور", type="password")
+            confirm = st.text_input("تأكيد كلمة المرور", type="password")
+            submitted = st.form_submit_button("حفظ حساب الطالب", type="primary", use_container_width=True)
+        if submitted:
+            mapped = []
+            if "فيزياء" in subjects:
+                mapped.append("phys")
+            if "كيمياء" in subjects:
+                mapped.append("chem")
+            ok, message = add_student_for_teacher(
+                teacher["id"], student_name, int(grade), mapped or ["phys"], password, confirm
+            )
             if ok:
                 st.success(message)
+                st.session_state["teacher_panel_view"] = "home"
+                st.rerun()
             else:
                 st.error(message)
-    else:
-        st.caption("لا يوجد طلبة بعد. أضف طالبًا أولًا.")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            '<div class="tp-hint">🔒 لا تكتب كلمة المرور في الدردشة أو أمام الصف. سلّمها للطالب مباشرة.</div>',
+            unsafe_allow_html=True,
+        )
+
+    with right:
+        st.markdown(
+            '<div class="tp-card"><div class="tp-section-head">'
+            '<span class="tp-section-icon">🔑</span>'
+            '<span><h3>تغيير كلمة المرور</h3>'
+            '<p class="lead">إذا نسي الطالب كلمته، عيّن كلمة جديدة هنا ثم أخبره بها. الكلمات القديمة لا تُعرض.</p></span>'
+            '</div></div>',
+            unsafe_allow_html=True,
+        )
+        if students:
+            labels = {str(s.get("name") or s.get("id")): str(s.get("id")) for s in students}
+            with st.form("reset_student_form"):
+                chosen = st.selectbox("اختر الطالب", list(labels.keys()))
+                new_pw = st.text_input("كلمة المرور الجديدة", type="password")
+                new_cf = st.text_input("تأكيد الكلمة الجديدة", type="password")
+                reset_ok = st.form_submit_button("حفظ الكلمة الجديدة", use_container_width=True)
+            if reset_ok:
+                ok, message = reset_student_password(str(teacher["id"]), labels[chosen], new_pw, new_cf)
+                if ok:
+                    st.success(message)
+                else:
+                    st.error(message)
+        else:
+            st.info("لا يوجد طلبة في القسم بعد. أضف طالبًا من البطاقة المجاورة أولًا.")
 
 
 def render_teacher_panel() -> None:
@@ -165,54 +239,40 @@ def render_teacher_panel() -> None:
         st.warning("اربط Google Sheets ليظهر طلبة قسمك هنا.")
 
     count, avg, badges = _class_stats(students)
-    if view == "manage":
-        st.markdown(
-            f'<div class="tp-hero"><div style="display:flex;gap:14px;align-items:center">'
-            f'<span class="tp-mark">⚙️</span><span><b>إعدادات القسم</b><small>{name} · إضافة طالب أو تغيير كلمة المرور</small></span></div></div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f'<div class="tp-hero"><div style="display:flex;gap:14px;align-items:center">'
-            f'<span class="tp-mark">🛡️</span><span><b>لوحة الأستاذ</b><small>{name} · متابعة قسمك فقط</small></span></div></div>',
-            unsafe_allow_html=True,
-        )
 
-    if view == "home":
-        a1, a2, a3, a4, a5 = st.columns([1.4, 0.7, 1.1, 1, 1])
-        with a1:
-            if st.button("📚 المحتوى التعليمي", type="primary", use_container_width=True):
-                _open_learning(teacher)
-        with a2:
-            if st.button("➕", help="إضافة طالب", use_container_width=True):
-                st.session_state["teacher_panel_view"] = "manage"
-                st.rerun()
-        with a3:
-            if st.button("إعدادات القسم", use_container_width=True):
-                st.session_state["teacher_panel_view"] = "manage"
-                st.rerun()
-        with a4:
-            if st.button("الرئيسية", use_container_width=True):
-                st.session_state["samed_view"] = "home"
-                st.rerun()
-        with a5:
-            if st.button("تسجيل الخروج", use_container_width=True):
-                _logout()
-    else:
-        b1, b2, b3 = st.columns(3)
-        with b1:
-            if st.button("→ عودة للوحة الأستاذ", type="primary", use_container_width=True):
+    if view == "manage":
+        _hero("إعدادات القسم", f"{name} · إضافة طالب أو تغيير كلمة المرور", "👤")
+        c1, c2, c3 = st.columns([1.4, 1, 1])
+        with c1:
+            if st.button("عودة إلى لوحة الأستاذ", key="tp_back", use_container_width=True):
                 st.session_state["teacher_panel_view"] = "home"
                 st.rerun()
-        with b2:
-            if st.button("الرئيسية", use_container_width=True):
+        with c2:
+            if st.button("الرئيسية", key="tp_home_settings", use_container_width=True):
                 st.session_state["samed_view"] = "home"
                 st.rerun()
-        with b3:
-            if st.button("تسجيل الخروج", use_container_width=True):
+        with c3:
+            if st.button("تسجيل الخروج", key="tp_logout_settings", use_container_width=True):
                 _logout()
-        _render_manage(teacher, students)
+        _render_settings(teacher, students)
         return
+
+    _hero("لوحة الأستاذ", f"{name} · متابعة قسمك فقط", "🛡️")
+    a1, a2, a3, a4 = st.columns([1.25, 1.15, 1, 1])
+    with a1:
+        if st.button("المحتوى التعليمي", key="tp_learn", type="primary", use_container_width=True):
+            _open_learning(teacher)
+    with a2:
+        if st.button("إضافة طالب", key="tp_add_student", use_container_width=True):
+            st.session_state["teacher_panel_view"] = "manage"
+            st.rerun()
+    with a3:
+        if st.button("الرئيسية", key="tp_home", use_container_width=True):
+            st.session_state["samed_view"] = "home"
+            st.rerun()
+    with a4:
+        if st.button("تسجيل الخروج", key="tp_logout", use_container_width=True):
+            _logout()
 
     st.markdown(
         f'<div class="tp-kpis">'
@@ -223,7 +283,8 @@ def render_teacher_panel() -> None:
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<div class="tp-card"><h3>نشاط الطلبة</h3><p>مستوى التقدم والأوسمة لطلبة قسمك. لإضافة طالب أو تغيير كلمة مروره اضغط أيقونة ➕ أو افتح إعدادات القسم.</p></div>',
+        '<div class="tp-card"><h3>نشاط الطلبة</h3>'
+        '<p class="lead">مستوى التقدم والأوسمة لطلبة قسمك. لإضافة طالب أو تغيير كلمة مروره اضغط «إضافة طالب».</p></div>',
         unsafe_allow_html=True,
     )
     components.html(_dashboard_html(students, name), height=820, scrolling=True)
