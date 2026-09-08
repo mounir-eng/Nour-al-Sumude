@@ -514,16 +514,16 @@ function sendAuth(action, extra){
 
 function localProfile(){try{return JSON.parse(localStorage.getItem("samed-profile-v1")||"null")}catch(e){return null}}
 function sendAction(action){sendDataToPython({action:action,token:String(Date.now())+"-"+Math.random().toString(36).slice(2)});}
-function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();} if(window._samedLoggedIn){ if(window._samedRole==="teacher"){sendAction("open_teacher_dashboard");return false;} sendAction("open_dashboard"); return false;} var p=localProfile(); if(p&&p.teacher_id){sendAction("open_dashboard");return false;} closeHowModal(); openLoginModal("choose"); return false;}
+function clearLocalSession(){try{localStorage.removeItem("samed-profile-v1"); localStorage.setItem("samed-logged-out","1");}catch(e){} window._samedLoggedIn=false; window._samedRole=""; var logoutBtn=document.getElementById("logoutBtn"); var accountBtn=document.getElementById("accountBtn"); if(logoutBtn) logoutBtn.hidden=true; if(accountBtn) accountBtn.textContent="تسجيل الدخول";}
+function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();} closeHowModal(); if(window._samedLoggedIn){ if(window._samedRole==="teacher"){sendAction("open_teacher_dashboard");return false;} sendAction("open_dashboard"); return false;} openLoginModal("choose"); return false;}
 function triggerDashboard(event){return triggerStart(event);}
 function triggerMomentum(event) {
   if (event) { event.preventDefault(); event.stopPropagation(); }
-  var p=localProfile();
-  if(p&&p.teacher_id){
+  if(window._samedLoggedIn){
     sendDataToPython({action:"open_momentum",token:String(Date.now()) + "-" + Math.random().toString(36).slice(2)});
     return false;
   }
-  openLoginModal("student-login");
+  openLoginModal("choose");
   return false;
 }
 
@@ -571,6 +571,11 @@ function onDataFromPython(event) {
   window._samedRole = String(args.role || "");
   var logoutBtn = document.getElementById("logoutBtn");
   var accountBtn = document.getElementById("accountBtn");
+  if (!window._samedLoggedIn) {
+    try { localStorage.removeItem("samed-profile-v1"); } catch (e) {}
+  } else {
+    try { localStorage.removeItem("samed-logged-out"); } catch (e) {}
+  }
   if (logoutBtn) logoutBtn.hidden = !window._samedLoggedIn;
   if (accountBtn && window._samedLoggedIn) {
     accountBtn.textContent = (window._samedRole === "teacher") ? "لوحة القسم" : "لوحتي";
@@ -602,7 +607,7 @@ window.addEventListener("load", function () {
   var logo=document.querySelector("a.logo");
   if(logo){logo.onclick=function(ev){ev.preventDefault(); var home=document.getElementById("home"); if(home) home.scrollIntoView({behavior:"smooth"}); sendAction("open_home"); return false;};}
   var logoutBtn=document.getElementById("logoutBtn");
-  if(logoutBtn){logoutBtn.onclick=function(){ try{localStorage.removeItem("samed-profile-v1");}catch(e){} sendAction("logout"); };}
+  if(logoutBtn){logoutBtn.onclick=function(){ clearLocalSession(); sendAction("logout"); };}
   document.getElementById("chooseTeacher").onclick=function(){showLoginView("teacher-login");};
   document.getElementById("chooseStudent").onclick=function(){showLoginView("student-login"); fillTeacherSelect();};
   document.getElementById("goTeacherRegister").onclick=function(){showLoginView("teacher-register");};
