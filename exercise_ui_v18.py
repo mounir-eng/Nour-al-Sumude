@@ -74,12 +74,23 @@ def render_exercise_header_v18(*, subject: str, track: str, unit_title: str, cur
         unsafe_allow_html=True,
     )
     with st.container(key="exercise_header_actions"):
-        copy_col, dashboard_col, contact_col = st.columns([3.2, 1, 1])
+        copy_col, dashboard_col, home_col, logout_col, contact_col = st.columns([2.2, 1, 1, 1, 1])
         with copy_col:
             st.markdown(f'<div class="exercise-breadcrumb"><span>الرئيسية</span><span>←</span><span>{subject}</span><span>←</span><b>{track}</b></div>', unsafe_allow_html=True)
         with dashboard_col:
             if st.button("لوحة الطالب", key=f"exercise_head_dashboard_{_safe_key(current_page)}", use_container_width=True):
                 st.session_state["samed_view"] = "dashboard"
+                st.switch_page("app.py")
+        with home_col:
+            if st.button("الرئيسية", key=f"exercise_head_home_{_safe_key(current_page)}", use_container_width=True):
+                st.session_state["samed_view"] = "home"
+                st.switch_page("app.py")
+        with logout_col:
+            if st.button("خروج", key=f"exercise_head_logout_{_safe_key(current_page)}", use_container_width=True):
+                for key in ("student_profile", "teacher_profile", "samed_role", "student_name"):
+                    st.session_state[key] = None
+                st.session_state["samed_teacher_learn"] = False
+                st.session_state["samed_view"] = "home"
                 st.switch_page("app.py")
         with contact_col:
             if st.button("✉️ تواصل معنا", key=f"exercise_head_contact_{_safe_key(current_page)}", use_container_width=True):

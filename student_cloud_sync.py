@@ -1,6 +1,7 @@
 """مزامنة تسجيل الطلبة وتقدمهم إلى Google Sheets — دون حفظ كلمات المرور في اللوحات."""
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -362,3 +363,53 @@ def safe_upsert(record: dict, merge: bool = True) -> bool:
         return True
     except Exception:
         return False
+
+
+MESSAGE_HEADERS = [
+    "id",
+    "created_at",
+    "name",
+    "email",
+    "institution",
+    "subject",
+    "message",
+    "status",
+]
+
+
+def save_contact_message(*, name: str, email: str, institution: str, subject: str, message: str) -> bool:
+    if not is_configured():
+        return False
+    ws = open_worksheet("messages", MESSAGE_HEADERS)
+    rec_id = "msg-" + uuid.uuid4().hex[:10]
+    created = datetime.now(timezone.utc).isoformat()
+    ws.append_row(
+        [rec_id, created, name, email, institution, subject, message, "new"],
+        value_input_option="USER_ENTERED",
+    )
+    return True
+
+
+def list_contact_messages() -> list[dict]:
+    if not is_configured():
+        return []
+    ws = open_worksheet("messages", MESSAGE_HEADERS)
+    out = []
+    for row in ws.get_all_records():
+        rec_id = str(row.get("id") or "").strip()
+        if not rec_id:
+            continue
+        out.append(
+            {
+                "id": rec_id,
+                "created_at": str(row.get("created_at") or ""),
+                "name": str(row.get("name") or ""),
+                "email": str(row.get("email") or ""),
+                "institution": str(row.get("institution") or ""),
+                "subject": str(row.get("subject") or ""),
+                "message": str(row.get("message") or ""),
+                "status": str(row.get("status") or "new"),
+            }
+        )
+    out.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
+    return out

@@ -13,8 +13,7 @@ from urllib.parse import quote
 
 import streamlit as st
 
-CONTACT_RECIPIENT = "techn47@gmail.com"
-CONTACT_PAGE_VERSION = "contact-v17-smtp"
+CONTACT_PAGE_VERSION = "contact-v18-inbox"
 _ALLOWED_RETURN_PAGES = {
     "app.py",
     "pages/physics_textbook_exercises.py",
@@ -76,6 +75,10 @@ def _clean_header(value: str, limit: int) -> str:
 
 
 def _send_message(*, name: str, email: str, institution: str, subject: str, message: str) -> None:
+    from student_cloud_sync import save_contact_message
+    if not save_contact_message(name=name, email=email, institution=institution, subject=subject, message=message):
+        raise RuntimeError("CONTACT_INBOX_NOT_CONFIGURED")
+    return
     config = _smtp_config()
     if config is None:
         raise RuntimeError("CONTACT_EMAIL_NOT_CONFIGURED")
@@ -138,25 +141,32 @@ def _return_to_platform() -> None:
 
 def render_contact_page() -> None:
     st.markdown(_CONTACT_CSS, unsafe_allow_html=True)
-    nav_copy, nav_button = st.columns([4, 1])
+    nav_copy, nav_home, nav_out = st.columns([3.2, 1, 1])
     with nav_copy:
         st.markdown(
             '<div class="contact-nav"><div class="contact-brand"><span class="contact-mark">🛡️</span>'
-            '<span><b>الطالب الصامد</b><small>صفحة التواصل والدعم</small></span></div>'
-            '<span style="font-size:10px;color:#71847f">رسالتك تصل إلى فريق المنصة</span></div>',
+            '<span><b>الطالب الصامد</b><small>صفحة التواصل والدعم</small></span></div></div>',
             unsafe_allow_html=True,
         )
-    with nav_button:
-        if st.button("← الرجوع", key="contact_back_top", use_container_width=True):
-            _return_to_platform()
+    with nav_home:
+        if st.button("الرئيسية", key="contact_home_top", use_container_width=True):
+            st.session_state["samed_view"] = "home"
+            st.switch_page("app.py")
+    with nav_out:
+        if st.button("تسجيل الخروج", key="contact_logout_top", use_container_width=True):
+            for key in ("student_profile", "teacher_profile", "samed_role", "student_name"):
+                st.session_state[key] = None
+            st.session_state["samed_teacher_learn"] = False
+            st.session_state["samed_view"] = "home"
+            st.switch_page("app.py")
 
     st.markdown(
         '<section class="contact-hero"><div><span class="contact-kicker">✉️ تواصل معنا</span>'
         '<h1>يسعدنا أن نسمع منك</h1><p>أرسل اقتراحًا، بلّغ عن مشكلة، أو اطلب تعاونًا تعليميًا. '
-        'سنستقبل الرسالة مباشرة عبر البريد الإلكتروني للمنصة.</p></div>'
-        '<div class="contact-facts"><div class="contact-fact"><span>📬</span><div><b>إرسال مباشر وآمن</b><small>لا نعرض بريدك للعموم</small></div></div>'
+        'ستصل الرسالة مباشرة إلى لوحة الأدمن داخل المنصة.</p></div>'
+        '<div class="contact-facts"><div class="contact-fact"><span>📬</span><div><b>تصل إلى لوحة الأدمن</b><small>لا تُرسل إلى بريد عام</small></div></div>'
         '<div class="contact-fact"><span>🌐</span><div><b>يتطلب اتصالًا بالإنترنت</b><small>أما الدروس المحمّلة فتبقى أوفلاين</small></div></div>'
-        '<div class="contact-fact"><span>↩️</span><div><b>الرد على بريدك</b><small>تأكد من كتابة البريد بشكل صحيح</small></div></div></div></section>',
+        '<div class="contact-fact"><span>↩️</span><div><b>يتابعها الأدمن من لوحته</b><small>اكتب بريدك إن رغبت بالرد</small></div></div></div></section>',
         unsafe_allow_html=True,
     )
 
@@ -209,26 +219,20 @@ def render_contact_page() -> None:
                     try:
                         _send_message(name=name, email=email, institution=institution, subject=subject, message=message)
                     except RuntimeError as exc:
-                        if str(exc) == "CONTACT_EMAIL_NOT_CONFIGURED":
-                            st.error("الإرسال المباشر غير مهيأ بعد. يجب على مدير المنصة إضافة إعدادات البريد الآمنة في Streamlit Cloud.")
+                        if str(exc) == "CONTACT_INBOX_NOT_CONFIGURED":
+                            st.error("تعذر حفظ الرسالة في لوحة الأدمن. يجب ربط Google Sheets أولًا.")
                         else:
                             st.error("تعذر إرسال الرسالة الآن. حاول مرة أخرى لاحقًا.")
-                        mailto = (
-                            f"mailto:{CONTACT_RECIPIENT}?subject={quote('[الطالب الصامد] ' + subject)}"
-                            f"&body={quote('الاسم: ' + name + chr(10) + 'البريد: ' + email + chr(10) + 'المؤسسة: ' + institution + chr(10) + chr(10) + message)}"
-                        )
-                        st.link_button("فتح تطبيق البريد كخيار بديل", mailto, use_container_width=True)
-                    except (smtplib.SMTPException, OSError, TimeoutError):
-                        st.error("تعذر الاتصال بخدمة البريد الآن. تحقق من الإنترنت ثم حاول مجددًا.")
+                    except Exception:
+                        st.error("تعذر حفظ الرسالة الآن. تحقق من الاتصال ثم حاول مجددًا.")
                     else:
                         st.session_state["_contact_last_sent"] = time.time()
-                        st.success("تم إرسال رسالتك بنجاح إلى techn47@gmail.com. شكرًا لتواصلك معنا.")
+                        st.success("وصلت رسالتك إلى لوحة الأدمن. شكرًا لتواصلك معنا.")
 
     with right:
         st.markdown(
-            '<aside class="contact-side"><h3>معلومات التواصل</h3><p>تُرسل الرسائل إلى البريد الرسمي التالي، ويمكن لفريق المنصة الرد مباشرة على البريد الذي تكتبه في النموذج.</p>'
-            '<span class="contact-mail">techn47@gmail.com</span>'
-            '<div class="contact-note"><span>⏱️</span><span>قد يتأخر الرد بحسب توفر الاتصال وظروف العمل، لكن رسالتك ستصل فور نجاح الإرسال.</span></div>'
+            '<aside class="contact-side"><h3>صندوق الأدمن</h3><p>تُحفظ الرسائل في لوحة الأدمن داخل المنصة. لا يظهر أي عنوان بريد عام هنا.</p>'
+            '<div class="contact-note"><span>⏱️</span><span>يطلع الأدمن على الرسائل من لوحة الإدارة، وقد يتأخر الرد بحسب ظروف العمل.</span></div>'
             '<div class="contact-privacy"><span>🔒</span><span>لا تكتب كلمة المرور أو أي بيانات حساسة داخل الرسالة.</span></div></aside>',
             unsafe_allow_html=True,
         )

@@ -8,7 +8,7 @@ from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 
-from student_cloud_sync import is_configured, list_students
+from student_cloud_sync import is_configured, list_contact_messages, list_students
 
 _ADMIN_CSS = """
 <style id="samed-admin-gate">
@@ -83,6 +83,35 @@ def _render_pending_teachers() -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+
+def _render_contact_messages() -> None:
+    st.markdown('<div class="pending-box">', unsafe_allow_html=True)
+    st.subheader("رسائل التواصل")
+    if not is_configured():
+        st.caption("اربط Google Sheets لتظهر رسائل صفحة التواصل هنا.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+    try:
+        messages = list_contact_messages()
+    except Exception as exc:
+        st.error("تعذر قراءة رسائل التواصل.")
+        st.caption(str(exc)[:240])
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+    if not messages:
+        st.caption("لا توجد رسائل بعد.")
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+    for row in messages[:40]:
+        name = row.get("name") or "بدون اسم"
+        subject = row.get("subject") or "بدون موضوع"
+        created = str(row.get("created_at") or "")[:19].replace("T", " ")
+        with st.expander(f"{name} · {subject} · {created}"):
+            st.write(f"البريد: {row.get('email') or '—'}")
+            st.write(f"المؤسسة: {row.get('institution') or '—'}")
+            st.write(row.get("message") or "")
+    st.markdown("</div>", unsafe_allow_html=True)
+
 def render_admin_panel() -> None:
     st.markdown(_ADMIN_CSS, unsafe_allow_html=True)
     expected = _admin_password()
@@ -102,6 +131,7 @@ def render_admin_panel() -> None:
         st.stop()
 
     _render_pending_teachers()
+    _render_contact_messages()
 
     live = False
     students: list[dict] | None = None

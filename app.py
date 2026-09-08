@@ -45,7 +45,7 @@ except Exception:
 if st.session_state.get("samed_role") == "teacher" and st.session_state.get("teacher_profile"):
     _tview = st.session_state.get("samed_view", "home")
     _tlearn = bool(st.session_state.get("samed_teacher_learn"))
-    if not (_tlearn and _tview in ("dashboard", "app", "onboarding")):
+    if _tview != "home" and not (_tlearn and _tview in ("dashboard", "app", "onboarding")):
         try:
             from teacher_panel import render_teacher_panel
             render_teacher_panel()
@@ -3300,6 +3300,12 @@ def _render_dashboard():
     if action == "home":
         st.session_state["samed_view"] = "home"
         st.rerun()
+    if action == "logout":
+        for key in ("student_profile", "teacher_profile", "samed_role", "student_name"):
+            st.session_state[key] = None
+        st.session_state["samed_teacher_learn"] = False
+        st.session_state["samed_view"] = "home"
+        st.rerun()
     if action == "contact":
         st.session_state["_contact_return_page"] = "app.py"
         st.session_state["_contact_return_view"] = "dashboard"
@@ -3335,7 +3341,7 @@ if st.session_state.get("samed_view","home")=="home":
     notice=st.session_state.pop("samed_auth_notice", "") or ""
     auth_view=st.session_state.pop("samed_auth_view", "") or ""
     comp=components.declare_component("student_samed_local_first_v18",path=str(Path(__file__).with_name("landing_component")))
-    event=comp(teachers=teachers, notice=notice, auth_view=auth_view, default=None, key="student_samed_local_first_v18")
+    event=comp(teachers=teachers, notice=notice, auth_view=auth_view, logged_in=bool(st.session_state.get("student_profile") or st.session_state.get("teacher_profile")), role=str(st.session_state.get("samed_role") or ""), default=None, key="student_samed_local_first_v18")
     if isinstance(event,dict):
         action=event.get("action");token=str(event.get("token",""))
         if action=="profile_loaded" and isinstance(event.get("profile"),dict) and event.get("profile",{}).get("teacher_id"):
@@ -3416,6 +3422,17 @@ if st.session_state.get("samed_view","home")=="home":
                     st.session_state["samed_view"]="dashboard"
                 else:
                     st.session_state["samed_auth_notice"]=msg
+            elif action=="logout":
+                for key in ("student_profile", "teacher_profile", "samed_role", "student_name"):
+                    st.session_state[key] = None
+                st.session_state["samed_teacher_learn"] = False
+                st.session_state["samed_view"] = "home"
+            elif action=="open_home":
+                st.session_state["samed_view"] = "home"
+            elif action=="open_teacher_dashboard":
+                if st.session_state.get("teacher_profile"):
+                    st.session_state["samed_teacher_learn"] = False
+                    st.session_state["samed_view"] = "teacher_dashboard"
             elif action=="open_dashboard":
                 st.session_state["samed_view"]="dashboard" if st.session_state.get("student_profile") else "home"
             elif action=="open_momentum":

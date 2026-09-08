@@ -65,13 +65,17 @@ def render_teacher_panel() -> None:
         f'<div class="t-head"><span><b>لوحة الأستاذ</b><small>{name} · طلبة قسمك فقط</small></span></div>',
         unsafe_allow_html=True,
     )
-    b1, b2, b3 = st.columns(3)
+    b1, b2, b3, b4 = st.columns(4)
     with b1:
         if st.button("المحتوى التعليمي", type="primary", use_container_width=True):
             _open_learning(teacher)
     with b2:
-        st.caption("كلمات المرور لا تُعرض. عيّن كلمة جديدة للطالب إن نسيها.")
+        if st.button("الرئيسية", use_container_width=True):
+            st.session_state["samed_view"] = "home"
+            st.rerun()
     with b3:
+        st.caption("كلمات المرور لا تُعرض. عيّن كلمة جديدة للطالب إن نسيها.")
+    with b4:
         if st.button("تسجيل الخروج", use_container_width=True):
             st.session_state["teacher_profile"] = None
             st.session_state["samed_role"] = None
