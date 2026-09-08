@@ -48,11 +48,13 @@ section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContaine
 }
 .tp-card h3{margin:0 0 6px;font-size:20px}
 .tp-card p.lead{margin:0 0 14px;color:#6a7f7b;font-size:13px;line-height:1.85}
-.tp-section-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.tp-section-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;margin-bottom:16px}
 .tp-section-icon{
-  width:44px;height:44px;border-radius:14px;flex:0 0 auto;
+  width:58px;height:58px;border-radius:18px;flex:0 0 auto;font-size:26px;
   display:grid;place-items:center;background:#eaf6f3;color:#1f585e
 }
+.tp-section-head h3{margin:0;font-size:20px}
+.tp-section-head p.lead{margin:4px 0 0}
 .tp-hint{
   display:flex;gap:8px;align-items:flex-start;background:#fff8e8;border:1px solid #eedcae;
   border-radius:14px;padding:11px 12px;color:#735b20;font-size:12px;line-height:1.8;margin:0 0 8px
@@ -155,9 +157,9 @@ def _render_settings(teacher: dict, students: list[dict]) -> None:
     with left:
         st.markdown(
             '<div class="tp-card"><div class="tp-section-head">'
-            '<span class="tp-section-icon">👤+</span>'
-            '<span><h3>إضافة طالب</h3>'
-            '<p class="lead">أنشئ حسابًا لطالب القسم. أعطه الاسم وكلمة المرور بنفسك؛ لن تظهر الكلمة هنا بعد الحفظ.</p></span>'
+            '<span class="tp-section-icon">👤</span>'
+            '<h3>إضافة طالب</h3>'
+            '<p class="lead">أنشئ حسابًا لطالب القسم. أعطه الاسم وكلمة المرور بنفسك؛ لن تظهر الكلمة هنا بعد الحفظ.</p>'
             '</div></div>',
             unsafe_allow_html=True,
         )
@@ -192,8 +194,8 @@ def _render_settings(teacher: dict, students: list[dict]) -> None:
         st.markdown(
             '<div class="tp-card"><div class="tp-section-head">'
             '<span class="tp-section-icon">🔑</span>'
-            '<span><h3>تغيير كلمة المرور</h3>'
-            '<p class="lead">إذا نسي الطالب كلمته، عيّن كلمة جديدة هنا ثم أخبره بها. الكلمات القديمة لا تُعرض.</p></span>'
+            '<h3>تغيير كلمة المرور</h3>'
+            '<p class="lead">إذا نسي الطالب كلمته، عيّن كلمة جديدة هنا ثم أخبره بها. الكلمات القديمة لا تُعرض.</p>'
             '</div></div>',
             unsafe_allow_html=True,
         )
@@ -233,10 +235,9 @@ def render_teacher_panel() -> None:
         try:
             students = list_students(teacher_id=str(teacher["id"]))
         except Exception as exc:
-            st.error("تعذر قراءة طلبة القسم من Google Sheets.")
-            st.caption(str(exc)[:240])
+            st.error("تعذر تحميل قائمة الطلبة الآن. حاول مرة أخرى لاحقًا.")
     else:
-        st.warning("اربط Google Sheets ليظهر طلبة قسمك هنا.")
+        st.info("ستظهر قائمة طلبة القسم هنا بعد اكتمال الإعداد.")
 
     count, avg, badges = _class_stats(students)
 
