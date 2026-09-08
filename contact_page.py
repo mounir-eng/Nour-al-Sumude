@@ -78,55 +78,6 @@ def _send_message(*, name: str, email: str, institution: str, subject: str, mess
     from student_cloud_sync import save_contact_message
     if not save_contact_message(name=name, email=email, institution=institution, subject=subject, message=message):
         raise RuntimeError("CONTACT_INBOX_NOT_CONFIGURED")
-    return
-    config = _smtp_config()
-    if config is None:
-        raise RuntimeError("CONTACT_EMAIL_NOT_CONFIGURED")
-    safe_subject = _clean_header(subject, 150)
-    sent_at = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-    plain = (
-        "رسالة جديدة من منصة الطالب الصامد\n"
-        "================================\n\n"
-        f"الاسم: {name}\n"
-        f"البريد الإلكتروني: {email}\n"
-        f"المؤسسة: {institution}\n"
-        f"الموضوع: {safe_subject}\n"
-        f"وقت الإرسال: {sent_at}\n\n"
-        "نص الرسالة:\n"
-        f"{message}\n"
-    )
-    rich = f"""
-    <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;line-height:1.8;color:#173b3d">
-      <h2 style="color:#245e65">رسالة جديدة من منصة الطالب الصامد</h2>
-      <table style="border-collapse:collapse;width:100%;max-width:700px">
-        <tr><td style="padding:7px;border:1px solid #dfe7e5"><b>الاسم</b></td><td style="padding:7px;border:1px solid #dfe7e5">{html.escape(name)}</td></tr>
-        <tr><td style="padding:7px;border:1px solid #dfe7e5"><b>البريد الإلكتروني</b></td><td dir="ltr" style="padding:7px;border:1px solid #dfe7e5;text-align:left">{html.escape(email)}</td></tr>
-        <tr><td style="padding:7px;border:1px solid #dfe7e5"><b>المؤسسة</b></td><td style="padding:7px;border:1px solid #dfe7e5">{html.escape(institution)}</td></tr>
-        <tr><td style="padding:7px;border:1px solid #dfe7e5"><b>الموضوع</b></td><td style="padding:7px;border:1px solid #dfe7e5">{html.escape(safe_subject)}</td></tr>
-        <tr><td style="padding:7px;border:1px solid #dfe7e5"><b>وقت الإرسال</b></td><td dir="ltr" style="padding:7px;border:1px solid #dfe7e5;text-align:left">{sent_at}</td></tr>
-      </table>
-      <h3>نص الرسالة</h3><div style="white-space:pre-wrap;background:#f8fafc;border:1px solid #dfe7e5;border-radius:12px;padding:14px">{html.escape(message)}</div>
-    </div>
-    """
-    mail = EmailMessage()
-    mail["Subject"] = f"[الطالب الصامد] {safe_subject}"
-    mail["From"] = formataddr(("منصة الطالب الصامد", str(config["sender"])))
-    mail["To"] = CONTACT_RECIPIENT
-    mail["Reply-To"] = _clean_header(email, 254)
-    mail.set_content(plain)
-    mail.add_alternative(rich, subtype="html")
-    context = ssl.create_default_context()
-    if int(config["port"]) == 465:
-        with smtplib.SMTP_SSL(str(config["host"]), int(config["port"]), timeout=20, context=context) as smtp:
-            smtp.login(str(config["username"]), str(config["password"]))
-            smtp.send_message(mail)
-    else:
-        with smtplib.SMTP(str(config["host"]), int(config["port"]), timeout=20) as smtp:
-            smtp.ehlo()
-            smtp.starttls(context=context)
-            smtp.ehlo()
-            smtp.login(str(config["username"]), str(config["password"]))
-            smtp.send_message(mail)
 
 
 def _return_to_platform() -> None:
