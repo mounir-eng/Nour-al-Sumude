@@ -114,6 +114,7 @@ footer{background:#061b2d;color:#ccdae5;padding:48px 0 24px}.footer-grid{display
       <button class="round-btn round-help" id="howBtn" aria-label="كيف تعمل المنصة؟">?</button>
       <button class="round-btn" id="theme" aria-label="تبديل المظهر">◐</button>
       <button class="round-btn menu-btn" id="menu" aria-label="القائمة">☰</button>
+      <button class="round-btn" id="logoutBtn" type="button" aria-label="تسجيل الخروج" title="تسجيل الخروج" hidden>⎋</button>
       <button class="btn primary" id="accountBtn" onclick="return triggerStart(event)">تسجيل الدخول</button>
     </div>
   </nav>
@@ -513,7 +514,7 @@ function sendAuth(action, extra){
 
 function localProfile(){try{return JSON.parse(localStorage.getItem("samed-profile-v1")||"null")}catch(e){return null}}
 function sendAction(action){sendDataToPython({action:action,token:String(Date.now())+"-"+Math.random().toString(36).slice(2)});}
-function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();}var p=localProfile(); if(p&&p.teacher_id){sendAction("open_dashboard");return false;} closeHowModal(); openLoginModal("choose"); return false;}
+function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();} if(window._samedLoggedIn){ if(window._samedRole==="teacher"){sendAction("open_teacher_dashboard");return false;} sendAction("open_dashboard"); return false;} var p=localProfile(); if(p&&p.teacher_id){sendAction("open_dashboard");return false;} closeHowModal(); openLoginModal("choose"); return false;}
 function triggerDashboard(event){return triggerStart(event);}
 function triggerMomentum(event) {
   if (event) { event.preventDefault(); event.stopPropagation(); }
@@ -566,6 +567,16 @@ function onDataFromPython(event) {
   if (!event.data || event.data.type !== "streamlit:render") return;
   var args = event.data.args || {};
   if (Array.isArray(args.teachers)) { approvedTeachers = args.teachers; fillTeacherSelect(); }
+  window._samedLoggedIn = !!args.logged_in;
+  window._samedRole = String(args.role || "");
+  var logoutBtn = document.getElementById("logoutBtn");
+  var accountBtn = document.getElementById("accountBtn");
+  if (logoutBtn) logoutBtn.hidden = !window._samedLoggedIn;
+  if (accountBtn && window._samedLoggedIn) {
+    accountBtn.textContent = (window._samedRole === "teacher") ? "لوحة القسم" : "لوحتي";
+  } else if (accountBtn) {
+    accountBtn.textContent = "تسجيل الدخول";
+  }
   if (args.notice) {
     if (window._authTimer) { clearTimeout(window._authTimer); window._authTimer=null; }
     var ok = !/تعذر|غير|خطأ|لا يوجد/.test(String(args.notice));
@@ -588,6 +599,10 @@ window.addEventListener("load", function () {
   var account=document.getElementById("accountBtn");
   if(account) account.textContent=(p&&p.teacher_id)?"لوحة الطالب":"تسجيل الدخول";
   if(p && p.teacher_id) sendDataToPython({action:"profile_loaded",profile:p});
+  var logo=document.querySelector("a.logo");
+  if(logo){logo.onclick=function(ev){ev.preventDefault(); var home=document.getElementById("home"); if(home) home.scrollIntoView({behavior:"smooth"}); sendAction("open_home"); return false;};}
+  var logoutBtn=document.getElementById("logoutBtn");
+  if(logoutBtn){logoutBtn.onclick=function(){ try{localStorage.removeItem("samed-profile-v1");}catch(e){} sendAction("logout"); };}
   document.getElementById("chooseTeacher").onclick=function(){showLoginView("teacher-login");};
   document.getElementById("chooseStudent").onclick=function(){showLoginView("student-login"); fillTeacherSelect();};
   document.getElementById("goTeacherRegister").onclick=function(){showLoginView("teacher-register");};
