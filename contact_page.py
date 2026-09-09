@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import streamlit as st
 
-CONTACT_PAGE_VERSION = "contact-v18-inbox"
+CONTACT_PAGE_VERSION = "contact-v19-compact"
 _ALLOWED_RETURN_PAGES = {
     "app.py",
     "pages/physics_textbook_exercises.py",
@@ -26,19 +26,42 @@ _ALLOWED_RETURN_PAGES = {
 }
 
 _CONTACT_CSS = r"""
-<style id="contact-page-v17">
-:root{--c-bg:#f8fafc;--c-paper:#fff;--c-ink:#173b3d;--c-muted:#71847f;--c-line:#dfe7e5;--c-deep:#173f44;--c-teal:#286a6d;--c-green:#57967b;--c-gold:#f5c65a;--c-shadow:0 18px 48px rgba(23,63,68,.10);--c-shadow-sm:0 8px 24px rgba(23,63,68,.065)}
-html,body,.stApp,[data-testid="stAppViewContainer"],.block-container{direction:rtl!important;text-align:right!important;font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important}.stApp,[data-testid="stAppViewContainer"]{background:var(--c-bg)!important;color:var(--c-ink)!important}[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContainer"]{width:100%!important;max-width:1120px!important;margin:0 auto!important;padding:14px 15px 42px!important}
-.contact-nav{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid var(--c-line);border-radius:17px;padding:10px 13px;margin-bottom:13px;box-shadow:0 5px 18px rgba(23,63,68,.04)}.contact-brand{display:flex;align-items:center;gap:10px}.contact-mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,var(--c-deep),#347d78);font-size:20px}.contact-brand b{display:block;font-size:16px}.contact-brand small{display:block;color:var(--c-muted);font-size:10px;margin-top:1px}
-.contact-hero{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;background:linear-gradient(125deg,#173f44,#286a6d 58%,#57967b 118%);color:#fff;border-radius:27px;padding:29px 31px;margin-bottom:17px;box-shadow:0 20px 46px rgba(28,88,87,.18)}.contact-hero:after{content:"";position:absolute;width:300px;height:300px;border:65px solid rgba(255,255,255,.045);border-radius:50%;left:-170px;bottom:-225px;z-index:-1}.contact-kicker{display:inline-flex;border:1px solid rgba(255,255,255,.17);background:rgba(255,255,255,.10);border-radius:999px;padding:5px 10px;font-size:10px;font-weight:900}.contact-hero h1{font-size:35px;line-height:1.45;margin:10px 0 6px}.contact-hero p{color:#dcebe8;font-size:13px;line-height:1.95;margin:0;max-width:610px}.contact-facts{display:grid;gap:8px}.contact-fact{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:16px;padding:14px 10px}.contact-fact>span{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:20px}.contact-fact b{display:block;font-size:12px;line-height:1.5}.contact-fact small{display:block;color:#d7e8e4;font-size:10px;margin-top:3px;line-height:1.6}
-.contact-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.7fr);gap:15px;align-items:start}.contact-card,.contact-side{background:#fff;border:1px solid var(--c-line);border-radius:21px;box-shadow:var(--c-shadow-sm)}.contact-card-head{padding:20px 22px 12px;border-bottom:1px solid #edf1f0}.contact-card-head h2{font-size:22px;margin:0}.contact-card-head p{font-size:11px;color:var(--c-muted);line-height:1.8;margin:4px 0 0}.contact-side{padding:21px}.contact-side h3{font-size:16px;margin:0 0 10px}.contact-side p{font-size:11px;line-height:1.9;color:var(--c-muted);margin:0 0 12px}.contact-mail{direction:ltr;unicode-bidi:isolate;display:block;background:#eef8f4;border:1px solid #d0e8df;color:#235f55;border-radius:12px;padding:10px;text-align:center;font-weight:900;font-size:12px}.contact-note{display:flex;gap:8px;align-items:flex-start;background:#fff8e8;border:1px solid #eedcae;border-radius:13px;padding:11px 12px;color:#735b20;font-size:10px;line-height:1.8;margin-top:12px}.contact-privacy{display:flex;gap:8px;align-items:flex-start;background:#eef8f4;border:1px solid #d0e8df;border-radius:13px;padding:11px 12px;color:#3c685e;font-size:10px;line-height:1.8;margin-top:9px}
-.st-key-contact_form_shell{background:#fff!important;border:1px solid var(--c-line)!important;border-top:0!important;border-radius:0 0 21px 21px!important;padding:18px 21px 20px!important;box-shadow:var(--c-shadow-sm)!important;margin-top:-17px!important}.stTextInput label,.stTextArea label{font-weight:900!important;font-size:12px!important;color:var(--c-ink)!important}.stTextInput input,.stTextArea textarea{border:1px solid #cbdad7!important;background:#fbfdfc!important;border-radius:12px!important;font-size:14px!important}.stTextInput input{min-height:48px!important;padding:10px 12px!important}.stTextArea textarea{min-height:165px!important;line-height:1.8!important}[data-testid="InputInstructions"],.stTextInput [data-testid="stCaptionContainer"],div[data-testid="stTextInput"] p,div[data-testid="stTextArea"] p{display:none!important;height:0!important;overflow:hidden!important;visibility:hidden!important}.stTextInput input:focus,.stTextArea textarea:focus{border-color:#347d78!important;box-shadow:0 0 0 4px rgba(52,125,120,.11)!important}.stFormSubmitButton>button,.stButton>button,.stLinkButton a{border-radius:12px!important;min-height:44px!important;font-weight:900!important}.stFormSubmitButton>button{background:var(--c-deep)!important;color:#fff!important;border:1px solid var(--c-deep)!important}.stButton>button{background:#fff!important;color:var(--c-ink)!important;border:1px solid var(--c-line)!important}.stAlert{border-radius:14px!important}
-.contact-bottom{margin-top:18px;background:linear-gradient(135deg,#173f44,#245e65);color:#fff;border-radius:19px;padding:16px 19px;display:flex;justify-content:space-between;gap:15px;align-items:center}.contact-bottom b{font-size:13px}.contact-bottom span{font-size:10px;color:#d3e5e2}
-@media(max-width:800px){section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContainer"]{padding:8px 9px 30px!important}.contact-hero{grid-template-columns:1fr;padding:23px 18px;border-radius:22px}.contact-hero h1{font-size:29px}.contact-grid{grid-template-columns:1fr}.st-key-contact_form_shell{padding:16px 14px!important}.contact-card-head{padding:18px 16px 11px}.contact-bottom{display:grid;text-align:center}.contact-brand small{display:none}}
+<style id="contact-page-v19">
+:root{--c-bg:#f6f8f7;--c-paper:#fff;--c-ink:#173b3d;--c-muted:#6b7f7b;--c-line:#dfe7e5;--c-deep:#173f44}
+html,body,.stApp,[data-testid="stAppViewContainer"],.block-container{direction:rtl!important;text-align:right!important;font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important}
+.stApp,[data-testid="stAppViewContainer"]{background:var(--c-bg)!important;color:var(--c-ink)!important}
+[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}
+section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContainer"]{width:100%!important;max-width:980px!important;margin:0 auto!important;padding:12px 14px 28px!important}
+.contact-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--c-line);border-radius:14px;padding:8px 12px;margin-bottom:12px}
+.contact-brand{display:flex;align-items:center;gap:8px}.contact-mark{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,#173f44,#347d78);font-size:18px}
+.contact-brand b{display:block;font-size:15px}.contact-brand small{display:block;color:var(--c-muted);font-size:11px}
+.contact-hero{background:linear-gradient(125deg,#173f44,#286a6d 70%);color:#fff;border-radius:18px;padding:16px 18px 14px;margin-bottom:12px}
+.contact-kicker{display:inline-flex;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);border-radius:999px;padding:3px 9px;font-size:11px;font-weight:800}
+.contact-hero h1{font-size:24px;line-height:1.35;margin:8px 0 4px}
+.contact-hero>div>p{color:#dcebe8;font-size:13px;line-height:1.7;margin:0 0 12px;max-width:52ch}
+.contact-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.contact-fact{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px 6px}
+.contact-fact>span{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:14px}
+.contact-fact b{display:block;font-size:12px;line-height:1.4;font-weight:800}
+.contact-fact small{display:block;color:#d7e8e4;font-size:10px;line-height:1.4;margin:0}
+.contact-card,.contact-side{background:#fff;border:1px solid var(--c-line);border-radius:16px}
+.contact-card-head{padding:12px 16px 8px;border-bottom:1px solid #edf1f0}
+.contact-card-head h2{font-size:18px;margin:0}.contact-card-head p{font-size:12px;color:var(--c-muted);margin:4px 0 0;line-height:1.6}
+.contact-side{padding:14px 16px}.contact-side h3{font-size:15px;margin:0 0 6px}.contact-side p{font-size:12px;line-height:1.7;color:var(--c-muted);margin:0 0 10px}
+.contact-note,.contact-privacy{display:flex;gap:8px;align-items:flex-start;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.6;margin-top:8px}
+.contact-note{background:#fff8e8;border:1px solid #eedcae;color:#735b20}
+.contact-privacy{background:#eef8f4;border:1px solid #d0e8df;color:#3c685e}
+.st-key-contact_form_shell{background:#fff!important;border:1px solid var(--c-line)!important;border-top:0!important;border-radius:0 0 16px 16px!important;padding:12px 16px 14px!important;margin-top:-10px!important}
+[data-testid="stWidgetLabel"],[data-testid="stWidgetLabel"] p,.stTextInput label,.stTextArea label{display:flex!important;visibility:visible!important;height:auto!important;overflow:visible!important;color:#173b3d!important;font-weight:800!important;font-size:13px!important;margin-bottom:4px!important}
+[data-testid="InputInstructions"]{display:none!important}
+.stTextInput input,.stTextArea textarea{border:1px solid #cbdad7!important;background:#fff!important;border-radius:10px!important;font-size:14px!important}
+.stTextInput input{min-height:44px!important}.stTextArea textarea{min-height:120px!important}
+.stFormSubmitButton>button{background:#173f44!important;color:#fff!important;border:0!important;border-radius:12px!important;min-height:44px!important;font-weight:800!important}
+.stButton>button{background:#fff!important;color:#173b3d!important;border:1px solid var(--c-line)!important;border-radius:12px!important;min-height:40px!important;font-weight:800!important}
+.contact-bottom{margin-top:12px;background:#173f44;color:#fff;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px}
+@media(max-width:800px){.contact-facts{grid-template-columns:1fr 1fr 1fr}.contact-hero{padding:14px}.contact-hero h1{font-size:22px}.contact-bottom{display:grid;text-align:center}}
 </style>
 """
-
-
 def _cfg_value(config: dict, name: str, env_name: str, default: object = "") -> object:
     value = config.get(name, os.getenv(env_name, default))
     return value if value is not None else default
@@ -113,10 +136,10 @@ def render_contact_page() -> None:
 
     st.markdown(
         '<section class="contact-hero"><div><span class="contact-kicker">✉️ تواصل معنا</span>'
-        '<h1>يسعدنا أن نسمع منك</h1><p>أرسل اقتراحًا أو استفسارًا أو طلب تعاون، وسنعود إليك في أقرب فرصة.</p></div>'
-        '<div class="contact-facts"><div class="contact-fact"><span>✍️</span><div><b>اكتب بياناتك بوضوح</b><small>لنتمكن من الرد عليك</small></div></div>'
-        '<div class="contact-fact"><span>🌐</span><div><b>يلزم اتصال بالإنترنت</b><small>لإرسال الرسالة فقط</small></div></div>'
-        '<div class="contact-fact"><span>🔒</span><div><b>خصوصيتك مهمة</b><small>لا تكتب كلمة المرور هنا</small></div></div></div></section>',
+        '<h1>يسعدنا أن نسمع منك</h1><p>أرسل اقتراحًا أو استفسارًا أو طلب تعاون، وسنعود إليك في أقرب فرصة.</p>'
+        '<div class="contact-facts"><div class="contact-fact"><span>✍️</span><b>اكتب بياناتك بوضوح</b><small>لنتمكن من الرد عليك</small></div>'
+        '<div class="contact-fact"><span>🌐</span><b>يلزم اتصال بالإنترنت</b><small>لإرسال الرسالة فقط</small></div>'
+        '<div class="contact-fact"><span>🔒</span><b>خصوصيتك مهمة</b><small>لا تكتب كلمة المرور هنا</small></div></div></div></section>',
         unsafe_allow_html=True,
     )
 
@@ -140,7 +163,7 @@ def render_contact_page() -> None:
                     institution = st.text_input("المؤسسة *", placeholder="المدرسة، الجامعة أو المؤسسة")
                 with c4:
                     subject = st.text_input("الموضوع *", placeholder="موضوع الرسالة باختصار")
-                message = st.text_area("نص الرسالة *", placeholder="اكتب تفاصيل رسالتك بوضوح...", height=190)
+                message = st.text_area("نص الرسالة *", placeholder="اكتب تفاصيل رسالتك بوضوح...", height=130)
                 submitted = st.form_submit_button("إرسال الرسالة", type="primary", use_container_width=True)
 
             if submitted:

@@ -79,7 +79,7 @@ section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContaine
 }
 .stTextInput label,.stSelectbox label,.stMultiSelect label{font-weight:800!important;font-size:13px!important;color:#16383b!important}
 .stTextInput input,.stSelectbox [data-baseweb="select"]>div{min-height:46px!important;border-radius:12px!important}
-[data-testid="InputInstructions"],div[data-testid="stTextInput"] p{display:none!important;height:0!important;overflow:hidden!important}
+[data-testid="InputInstructions"]{display:none!important}
 @media(max-width:800px){
   .tp-hero{display:grid}.tp-kpis{grid-template-columns:1fr}
 }
