@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import streamlit as st
 
-CONTACT_PAGE_VERSION = "contact-v19-compact"
+CONTACT_PAGE_VERSION = "contact-v20"
 _ALLOWED_RETURN_PAGES = {
     "app.py",
     "pages/physics_textbook_exercises.py",
@@ -51,6 +51,7 @@ section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContaine
 .contact-note,.contact-privacy{display:flex;gap:8px;align-items:flex-start;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.6;margin-top:8px}
 .contact-note{background:#fff8e8;border:1px solid #eedcae;color:#735b20}
 .contact-privacy{background:#eef8f4;border:1px solid #d0e8df;color:#3c685e}
+.c-label{display:block!important;visibility:visible!important;font-weight:800!important;font-size:13px!important;color:#173b3d!important;margin:0 0 6px!important;line-height:1.4!important}
 .st-key-contact_form_shell{background:#fff!important;border:1px solid var(--c-line)!important;border-top:0!important;border-radius:0 0 16px 16px!important;padding:12px 16px 14px!important;margin-top:-10px!important}
 [data-testid="stWidgetLabel"],[data-testid="stWidgetLabel"] p,.stTextInput label,.stTextArea label{display:flex!important;visibility:visible!important;height:auto!important;overflow:visible!important;color:#173b3d!important;font-weight:800!important;font-size:13px!important;margin-bottom:4px!important}
 [data-testid="InputInstructions"]{display:none!important}
@@ -119,7 +120,7 @@ def render_contact_page() -> None:
     with nav_copy:
         st.markdown(
             '<div class="contact-nav"><div class="contact-brand"><span class="contact-mark">🛡️</span>'
-            '<span><b>الطالب الصامد</b><small>صفحة التواصل والدعم</small></span></div></div>',
+            '<span><b>الطالب الصامد</b><small>صفحة التواصل · v20</small></span></div></div>',
             unsafe_allow_html=True,
         )
     with nav_home:
@@ -155,15 +156,20 @@ def render_contact_page() -> None:
             with st.form("contact_form_v17", clear_on_submit=False):
                 c1, c2 = st.columns(2)
                 with c1:
-                    name = st.text_input("الاسم الكامل *", value=default_name, placeholder="اكتب اسمك الكامل")
+                    st.markdown('<span class="c-label">الاسم الكامل *</span>', unsafe_allow_html=True)
+                    name = st.text_input("الاسم الكامل *", value=default_name, placeholder="اكتب اسمك الكامل", label_visibility="collapsed")
                 with c2:
-                    email = st.text_input("البريد الإلكتروني *", placeholder="name@example.com")
+                    st.markdown('<span class="c-label">البريد الإلكتروني *</span>', unsafe_allow_html=True)
+                    email = st.text_input("البريد الإلكتروني *", placeholder="name@example.com", label_visibility="collapsed")
                 c3, c4 = st.columns(2)
                 with c3:
-                    institution = st.text_input("المؤسسة *", placeholder="المدرسة، الجامعة أو المؤسسة")
+                    st.markdown('<span class="c-label">المؤسسة *</span>', unsafe_allow_html=True)
+                    institution = st.text_input("المؤسسة *", placeholder="المدرسة، الجامعة أو المؤسسة", label_visibility="collapsed")
                 with c4:
-                    subject = st.text_input("الموضوع *", placeholder="موضوع الرسالة باختصار")
-                message = st.text_area("نص الرسالة *", placeholder="اكتب تفاصيل رسالتك بوضوح...", height=130)
+                    st.markdown('<span class="c-label">الموضوع *</span>', unsafe_allow_html=True)
+                    subject = st.text_input("الموضوع *", placeholder="موضوع الرسالة باختصار", label_visibility="collapsed")
+                st.markdown('<span class="c-label">نص الرسالة *</span>', unsafe_allow_html=True)
+                message = st.text_area("نص الرسالة *", placeholder="اكتب تفاصيل رسالتك بوضوح...", height=130, label_visibility="collapsed")
                 submitted = st.form_submit_button("إرسال الرسالة", type="primary", use_container_width=True)
 
             if submitted:
