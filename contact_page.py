@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import streamlit as st
 
-CONTACT_PAGE_VERSION = "contact-v20"
+CONTACT_PAGE_VERSION = "contact-v21"
 _ALLOWED_RETURN_PAGES = {
     "app.py",
     "pages/physics_textbook_exercises.py",
@@ -35,10 +35,9 @@ section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContaine
 .contact-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--c-line);border-radius:14px;padding:8px 12px;margin-bottom:12px}
 .contact-brand{display:flex;align-items:center;gap:8px}.contact-mark{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,#173f44,#347d78);font-size:18px}
 .contact-brand b{display:block;font-size:15px}.contact-brand small{display:block;color:var(--c-muted);font-size:11px}
-.contact-hero{background:linear-gradient(125deg,#173f44,#286a6d 70%);color:#fff;border-radius:18px;padding:16px 18px 14px;margin-bottom:12px}
-.contact-kicker{display:inline-flex;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);border-radius:999px;padding:3px 9px;font-size:11px;font-weight:800}
-.contact-hero h1{font-size:24px;line-height:1.35;margin:8px 0 4px}
-.contact-hero>div>p{color:#dcebe8;font-size:13px;line-height:1.7;margin:0 0 12px;max-width:52ch}
+.contact-hero{background:linear-gradient(125deg,#173f44,#286a6d 70%);color:#fff;border-radius:16px;padding:12px 16px 10px;margin-bottom:12px;text-align:center}
+.contact-hero h1{font-size:22px;line-height:1.3;margin:0 0 4px}
+.contact-hero>div>p{color:#dcebe8;font-size:13px;line-height:1.6;margin:0 auto 10px;max-width:46ch}
 .contact-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .contact-fact{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px 6px}
 .contact-fact>span{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:14px}
@@ -51,9 +50,8 @@ section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContaine
 .contact-note,.contact-privacy{display:flex;gap:8px;align-items:flex-start;border-radius:10px;padding:8px 10px;font-size:12px;line-height:1.6;margin-top:8px}
 .contact-note{background:#fff8e8;border:1px solid #eedcae;color:#735b20}
 .contact-privacy{background:#eef8f4;border:1px solid #d0e8df;color:#3c685e}
-.c-label{display:block!important;visibility:visible!important;font-weight:800!important;font-size:13px!important;color:#173b3d!important;margin:0 0 6px!important;line-height:1.4!important}
 .st-key-contact_form_shell{background:#fff!important;border:1px solid var(--c-line)!important;border-top:0!important;border-radius:0 0 16px 16px!important;padding:12px 16px 14px!important;margin-top:-10px!important}
-[data-testid="stWidgetLabel"],[data-testid="stWidgetLabel"] p,.stTextInput label,.stTextArea label{display:flex!important;visibility:visible!important;height:auto!important;overflow:visible!important;color:#173b3d!important;font-weight:800!important;font-size:13px!important;margin-bottom:4px!important}
+.stTextInput label,.stTextArea label,[data-testid="stWidgetLabel"]{display:flex!important;visibility:visible!important;height:auto!important;color:#173b3d!important;font-weight:800!important;font-size:13px!important;margin-bottom:4px!important}
 [data-testid="InputInstructions"]{display:none!important}
 .stTextInput input,.stTextArea textarea{border:1px solid #cbdad7!important;background:#fff!important;border-radius:10px!important;font-size:14px!important}
 .stTextInput input{min-height:44px!important}.stTextArea textarea{min-height:120px!important}
@@ -120,7 +118,7 @@ def render_contact_page() -> None:
     with nav_copy:
         st.markdown(
             '<div class="contact-nav"><div class="contact-brand"><span class="contact-mark">🛡️</span>'
-            '<span><b>الطالب الصامد</b><small>صفحة التواصل · v20</small></span></div></div>',
+            '<span><b>الطالب الصامد</b><small>صفحة التواصل · v21</small></span></div></div>',
             unsafe_allow_html=True,
         )
     with nav_home:
@@ -136,7 +134,7 @@ def render_contact_page() -> None:
             st.switch_page("app.py")
 
     st.markdown(
-        '<section class="contact-hero"><div><span class="contact-kicker">✉️ تواصل معنا</span>'
+        '<section class="contact-hero"><div>'
         '<h1>يسعدنا أن نسمع منك</h1><p>أرسل اقتراحًا أو استفسارًا أو طلب تعاون، وسنعود إليك في أقرب فرصة.</p>'
         '<div class="contact-facts"><div class="contact-fact"><span>✍️</span><b>اكتب بياناتك بوضوح</b><small>لنتمكن من الرد عليك</small></div>'
         '<div class="contact-fact"><span>🌐</span><b>يلزم اتصال بالإنترنت</b><small>لإرسال الرسالة فقط</small></div>'
@@ -156,20 +154,15 @@ def render_contact_page() -> None:
             with st.form("contact_form_v17", clear_on_submit=False):
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.markdown('<span class="c-label">الاسم الكامل *</span>', unsafe_allow_html=True)
-                    name = st.text_input("الاسم الكامل *", value=default_name, placeholder="اكتب اسمك الكامل", label_visibility="collapsed")
+                    name = st.text_input("الاسم الكامل *", value=default_name, placeholder="اكتب اسمك الكامل")
                 with c2:
-                    st.markdown('<span class="c-label">البريد الإلكتروني *</span>', unsafe_allow_html=True)
-                    email = st.text_input("البريد الإلكتروني *", placeholder="name@example.com", label_visibility="collapsed")
+                    email = st.text_input("البريد الإلكتروني *", placeholder="name@example.com")
                 c3, c4 = st.columns(2)
                 with c3:
-                    st.markdown('<span class="c-label">المؤسسة *</span>', unsafe_allow_html=True)
-                    institution = st.text_input("المؤسسة *", placeholder="المدرسة، الجامعة أو المؤسسة", label_visibility="collapsed")
+                    institution = st.text_input("المؤسسة *", placeholder="المدرسة، الجامعة أو المؤسسة")
                 with c4:
-                    st.markdown('<span class="c-label">الموضوع *</span>', unsafe_allow_html=True)
-                    subject = st.text_input("الموضوع *", placeholder="موضوع الرسالة باختصار", label_visibility="collapsed")
-                st.markdown('<span class="c-label">نص الرسالة *</span>', unsafe_allow_html=True)
-                message = st.text_area("نص الرسالة *", placeholder="اكتب تفاصيل رسالتك بوضوح...", height=130, label_visibility="collapsed")
+                    subject = st.text_input("الموضوع *", placeholder="موضوع الرسالة باختصار")
+                message = st.text_area("نص الرسالة *", placeholder="اكتب تفاصيل رسالتك بوضوح...", height=130)
                 submitted = st.form_submit_button("إرسال الرسالة", type="primary", use_container_width=True)
 
             if submitted:
