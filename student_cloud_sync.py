@@ -82,9 +82,6 @@ def open_worksheet(kind: str = "students"):
     values = ws.get_all_values()
     if not values:
         ws.update("A1", [headers])
-    elif [c.strip() for c in values[0]] != headers:
-        # Keep existing sheet; callers map by header name when possible.
-        pass
     return ws
 
 

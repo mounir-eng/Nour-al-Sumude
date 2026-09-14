@@ -31,7 +31,6 @@ section[data-testid="stMain"] .block-container{max-width:1100px!important;paddin
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 16px}
 .kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center}
 .kpi b{display:block;font-size:26px;color:#173f44}.kpi small{color:var(--muted);font-size:12px;font-weight:700}
-.icon-row{display:flex;gap:12px;justify-content:center;margin:8px 0 18px}
 .msg-card,.stu-row{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
 .msg-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .msg-top b{font-size:15px}.msg-top small{color:var(--muted)}

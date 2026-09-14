@@ -3143,13 +3143,51 @@ def _render_onboarding():
     st.markdown("""<style id="onboarding-parent-v16">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f8fafc!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1220px!important;margin:0 auto!important;padding:0 12px 24px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f8fafc!important}</style>""",unsafe_allow_html=True)
     old=st.session_state.get("student_profile") or {}
     component=components.declare_component("student_samed_onboarding_v16",path=str(Path(__file__).with_name("onboarding_component")))
-    event=component(data={"profile":{"name":old.get("name",""),"grade":int((old.get("grades") or [old.get("grade",12)])[-1] if isinstance(old.get("grades"), list) and old.get("grades") else old.get("grade",12)),"grades":old.get("grades") or [int(old.get("grade",12))],"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v21")
+    event=component(data={"profile":{"name":old.get("name",""),"grade":int((old.get("grades") or [old.get("grade",12)])[-1] if isinstance(old.get("grades"), list) and old.get("grades") else old.get("grade",12)),"grades":old.get("grades") or [int(old.get("grade",12))],"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v22")
     if isinstance(event,dict):
         token=str(event.get("token","")).strip();action=str(event.get("action","")).strip()
         if token and st.session_state.get("_onboarding_v16_token")!=token:
             st.session_state["_onboarding_v16_token"]=token
             if action=="back_home":
                 st.session_state.pop("_onboarding_error",None);st.session_state["samed_view"]="home";st.rerun()
+            if action=="login_student" and isinstance(event.get("profile"),dict):
+                raw=event["profile"];name=str(raw.get("name","")).strip();password=str(raw.get("password","")).strip()
+                error=""
+                if len(name)<2: error="اكتب اسم المستخدم."
+                elif not password: error="أدخل كلمة المرور."
+                profile=None
+                if not error:
+                    digest=hashlib.sha256(password.encode("utf-8")).hexdigest()
+                    try:
+                        import student_cloud_sync as _sync
+                        row=_sync.find_student_by_name(name) if _sync.is_configured() else None
+                    except Exception:
+                        row=None
+                    stored=(row or {}).get("password_hash") or old.get("passwordHash") or old.get("pinHash") or ""
+                    ok=False
+                    if stored:
+                        if stored==digest or stored.endswith("$"+digest):
+                            ok=True
+                        elif "$" in stored:
+                            salt,cur=stored.split("$",1)
+                            ok=hashlib.sha256((salt+password).encode("utf-8")).hexdigest()==cur or hashlib.sha256((password+salt).encode("utf-8")).hexdigest()==cur
+                    if ok and row:
+                        grades=[]
+                        for g in str(row.get("grade") or "12").split(","):
+                            try:
+                                gi=int(g.strip()); grades.append(gi) if gi in GRADE_LABELS else None
+                            except Exception:
+                                pass
+                        grades=sorted(set(grades)) or [12]
+                        subs=[s.strip() for s in str(row.get("subjects") or "phys,chem").replace("physics","phys").replace("chemistry","chem").split(",") if s.strip() in {"phys","chem"}]
+                        profile={"id":row.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":max(grades),"grades":grades,"subjects":subs or ["phys","chem"],"passwordHash":stored,"mode":"local"}
+                    elif ok and old.get("name")==name:
+                        profile=dict(old)
+                    else:
+                        error="اسم المستخدم أو كلمة المرور غير صحيحة."
+                if error or not profile:
+                    st.session_state["_onboarding_error"]=error or "تعذّر الدخول.";st.rerun()
+                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_grade"]=profile.get("grade",12);st.session_state["samed_view"]="dashboard";st.rerun()
             if action=="save_profile" and isinstance(event.get("profile"),dict):
                 raw=event["profile"];name=str(raw.get("name","")).strip()
                 grades=[]
@@ -3310,7 +3348,11 @@ if st.session_state.get("samed_view","home")=="home":
     if isinstance(event,dict):
         action=event.get("action");token=str(event.get("token",""))
         if action=="profile_loaded" and isinstance(event.get("profile"),dict):
-            p=dict(event["profile"]);p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","")
+            p=dict(event["profile"])
+            if p.get("role")=="teacher" or p.get("teacher_id") or p.get("mode")=="teacher":
+                pass
+            else:
+                p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","")
         elif token and st.session_state.get("_last_visual_event")!=token:
             st.session_state["_last_visual_event"]=token
             if action=="open_onboarding": st.session_state["samed_view"]="onboarding"
