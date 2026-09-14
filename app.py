@@ -32,14 +32,6 @@ st.set_page_config(
 # طبقة v18 تُحمّل مبكرًا كي لا تبقى الصفحة على التصميم القديم.
 apply_exercise_ui_v18()
 
-try:
-    if str(st.query_params.get("admin", "")).strip() == "1":
-        from admin_panel import render_admin_panel
-        render_admin_panel()
-        st.stop()
-except Exception:
-    pass
-
 # ==========================================================
 # 2. التنسيق (CSS)
 # ==========================================================
@@ -3126,7 +3118,8 @@ ANNUAL_PROGRAM = {
  "phys": {6:["القياس والوحدات","الحركة والسرعة","القوى من حولنا","الشغل والطاقة","الضوء والرؤية","الصوت"],7:["المادة وحالاتها","الحرارة ودرجة الحرارة","الآلات البسيطة","الكهرباء الساكنة","المغناطيسية"],8:["الحركة المنتظمة","القوة والاحتكاك","الضغط والكثافة","الطاقة وتحولاتها","الدارات الكهربائية"],9:["الحركة بتسارع ثابت","قوانين نيوتن","الشغل والقدرة","الموجات","التيار الكهربائي"],10:["المتجهات","الحركة في بعدين","قوانين نيوتن وتطبيقاتها","الشغل والطاقة والقدرة","مقدمة في الزخم"],11:["الحركة الرأسية والمقذوفات","الحركة الدائرية","الجاذبية الكونية","الموائع","الاهتزاز والموجات"],12:["الزخم الخطي والدفع","الكهرباء الساكنة","التيار والدارات","المجال المغناطيسي","الحث الكهرومغناطيسي","مقدمة الفيزياء الحديثة"]},
  "chem": {6:["المادة وخواصها","المخاليط والمحاليل","التغيرات الفيزيائية والكيميائية","الماء ودورته"],7:["بناء الذرة","العناصر والمركبات","مقدمة الجدول الدوري","الأحماض والقواعد حولنا"],8:["التركيب الذري والإلكترونات","الروابط الكيميائية","التفاعلات الكيميائية","المحاليل والذائبية"],9:["المعادلات الكيميائية ووزنها","الأحماض والقواعد والأملاح","الأكسدة والاختزال","مقدمة الكيمياء العضوية"],10:["المول والحسابات الكيميائية","الجدول الدوري والدورية","أنواع الروابط","الغازات وقوانينها"],11:["الاتزان الكيميائي","سرعة التفاعل","الأحماض والقواعد وحساب pH","الكهروكيمياء"],12:["النموذج الذري والتركيب الإلكتروني","الكيمياء الحرارية","الكيمياء العضوية","البوليمرات","التحليل الكيميائي"]}
 }
-GRADE_LABELS={6:"السادس",7:"السابع",8:"الثامن",9:"التاسع",10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"}
+GRADE_LABELS={10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"}
+ALLOWED_GRADES={10,11,12}
 for _k,_v in (("samed_view","home"),("student_profile",None),("dashboard_subject","phys")):
     if _k not in st.session_state: st.session_state[_k]=_v
 
@@ -3143,58 +3136,20 @@ def _render_onboarding():
     st.markdown("""<style id="onboarding-parent-v16">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f8fafc!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1220px!important;margin:0 auto!important;padding:0 12px 24px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f8fafc!important}</style>""",unsafe_allow_html=True)
     old=st.session_state.get("student_profile") or {}
     component=components.declare_component("student_samed_onboarding_v16",path=str(Path(__file__).with_name("onboarding_component")))
-    event=component(data={"profile":{"name":old.get("name",""),"grade":int((old.get("grades") or [old.get("grade",12)])[-1] if isinstance(old.get("grades"), list) and old.get("grades") else old.get("grade",12)),"grades":old.get("grades") or [int(old.get("grade",12))],"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v22")
+    event=component(data={"profile":{"name":old.get("name",""),"grade":int(old.get("grade",12) or 12),"grades":old.get("grades") or [int(old.get("grade",12) or 12)],"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v23")
     if isinstance(event,dict):
         token=str(event.get("token","")).strip();action=str(event.get("action","")).strip()
         if token and st.session_state.get("_onboarding_v16_token")!=token:
             st.session_state["_onboarding_v16_token"]=token
             if action=="back_home":
                 st.session_state.pop("_onboarding_error",None);st.session_state["samed_view"]="home";st.rerun()
-            if action=="login_student" and isinstance(event.get("profile"),dict):
-                raw=event["profile"];name=str(raw.get("name","")).strip();password=str(raw.get("password","")).strip()
-                error=""
-                if len(name)<2: error="اكتب اسم المستخدم."
-                elif not password: error="أدخل كلمة المرور."
-                profile=None
-                if not error:
-                    digest=hashlib.sha256(password.encode("utf-8")).hexdigest()
-                    try:
-                        import student_cloud_sync as _sync
-                        row=_sync.find_student_by_name(name) if _sync.is_configured() else None
-                    except Exception:
-                        row=None
-                    stored=(row or {}).get("password_hash") or old.get("passwordHash") or old.get("pinHash") or ""
-                    ok=False
-                    if stored:
-                        if stored==digest or stored.endswith("$"+digest):
-                            ok=True
-                        elif "$" in stored:
-                            salt,cur=stored.split("$",1)
-                            ok=hashlib.sha256((salt+password).encode("utf-8")).hexdigest()==cur or hashlib.sha256((password+salt).encode("utf-8")).hexdigest()==cur
-                    if ok and row:
-                        grades=[]
-                        for g in str(row.get("grade") or "12").split(","):
-                            try:
-                                gi=int(g.strip()); grades.append(gi) if gi in GRADE_LABELS else None
-                            except Exception:
-                                pass
-                        grades=sorted(set(grades)) or [12]
-                        subs=[s.strip() for s in str(row.get("subjects") or "phys,chem").replace("physics","phys").replace("chemistry","chem").split(",") if s.strip() in {"phys","chem"}]
-                        profile={"id":row.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":max(grades),"grades":grades,"subjects":subs or ["phys","chem"],"passwordHash":stored,"mode":"local"}
-                    elif ok and old.get("name")==name:
-                        profile=dict(old)
-                    else:
-                        error="اسم المستخدم أو كلمة المرور غير صحيحة."
-                if error or not profile:
-                    st.session_state["_onboarding_error"]=error or "تعذّر الدخول.";st.rerun()
-                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_grade"]=profile.get("grade",12);st.session_state["samed_view"]="dashboard";st.rerun()
             if action=="save_profile" and isinstance(event.get("profile"),dict):
                 raw=event["profile"];name=str(raw.get("name","")).strip()
                 grades=[]
                 for g in (raw.get("grades") or [raw.get("grade",12)]):
                     try: gi=int(g)
                     except Exception: continue
-                    if gi in GRADE_LABELS: grades.append(gi)
+                    if gi in ALLOWED_GRADES: grades.append(gi)
                 grades=sorted(set(grades))
                 grade=max(grades) if grades else 12
                 subjects=[s for s in raw.get("subjects",[]) if s in {"phys","chem"}]
@@ -3202,30 +3157,14 @@ def _render_onboarding():
                 existing_hash=old.get("passwordHash") or old.get("pinHash")
                 error=""
                 if len(name)<2: error="اكتب اسم مستخدم من حرفين على الأقل."
-                elif not grades: error="اختر صفًا دراسيًا واحدًا على الأقل."
+                elif not grades: error="اختر صفًا واحدًا على الأقل: 10 أو 11 أو 12."
                 elif not subjects: error="اختر مادة واحدة على الأقل."
                 elif (not existing_hash or password or confirm) and len(password)<6: error="يجب أن تتكون كلمة المرور من 6 أحرف على الأقل."
                 elif (not existing_hash or password or confirm) and password!=confirm: error="كلمة المرور وتأكيدها غير متطابقين."
-                sid=old.get("id") or "stu-"+uuid.uuid4().hex[:12]
-                if not error:
-                    try:
-                        import student_cloud_sync as _sync
-                        if _sync.is_configured():
-                            existing=_sync.find_student_by_name(name)
-                            if existing and str(existing.get("id") or "") not in {str(sid), str(old.get("id") or "")}:
-                                error="اسم المستخدم مستخدم مسبقًا."
-                    except Exception:
-                        pass
                 if error:
                     st.session_state["_onboarding_error"]=error;st.rerun()
                 password_hash=hashlib.sha256(password.encode("utf-8")).hexdigest() if password else existing_hash
-                profile={"id":sid,"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
-                try:
-                    import student_cloud_sync as _sync
-                    if _sync.is_configured():
-                        _sync.upsert_student(profile)
-                except Exception:
-                    pass
+                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_grade"]=grade;st.session_state["samed_view"]="dashboard";st.rerun()
     st.stop()
 
@@ -3241,8 +3180,25 @@ def _render_dashboard():
 
     _profile_bridge(profile)
     allowed = profile.get("subjects", ["phys", "chem"])
-    physics_live = "phys" in allowed and profile["grade"] == 12
-    chemistry_live = "chem" in allowed and profile["grade"] == 12
+    grades=[]
+    for g in (profile.get("grades") or [profile.get("grade", 12)]):
+        try:
+            gi=int(g)
+        except Exception:
+            continue
+        if gi in ALLOWED_GRADES:
+            grades.append(gi)
+    grades=sorted(set(grades)) or [12]
+    try:
+        active_grade=int(profile.get("grade", grades[-1]))
+    except Exception:
+        active_grade=grades[-1]
+    if active_grade not in grades:
+        active_grade=grades[-1]
+    profile["grade"]=active_grade
+    profile["grades"]=grades
+    physics_live = "phys" in allowed and active_grade == 12
+    chemistry_live = "chem" in allowed and active_grade == 12
     physics_completed = st.session_state.get("completed_questions", set()) or set()
     physics_book_completed = st.session_state.get("physbook_completed_questions", set()) or set()
     physics_review_completed = st.session_state.get("physreview_completed_questions", set()) or set()
@@ -3272,12 +3228,7 @@ def _render_dashboard():
     safe_name = (str(profile.get("name", "الطالب"))
                  .replace("&", "&amp;").replace("<", "&lt;")
                  .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;"))
-    _grades = profile.get("grades") or [profile.get("grade", 12)]
-    try:
-        _grades = [int(g) for g in _grades]
-    except Exception:
-        _grades = [int(profile.get("grade", 12))]
-    grade_label = " · ".join("الصف " + GRADE_LABELS.get(g, str(g)) for g in _grades)
+    grade_label = GRADE_LABELS.get(int(profile["grade"]), str(profile["grade"]))
 
     from streamlit_dashboard_v13 import render_dashboard_v13
     stage_progress = {
@@ -3311,6 +3262,16 @@ def _render_dashboard():
         unit_progress=unit_progress,
         unit_bytes=_unit_download_bytes,
     )
+    if isinstance(action, str) and action.startswith("switch_grade_"):
+        try:
+            nxt=int(action.split("_")[-1])
+        except Exception:
+            nxt=None
+        if nxt in (profile.get("grades") or []):
+            profile["grade"]=nxt
+            st.session_state["student_profile"]=profile
+            st.session_state["samed_grade"]=nxt
+            st.rerun()
     if action == "edit":
         st.session_state["samed_view"] = "onboarding"
         st.rerun()
@@ -3348,11 +3309,7 @@ if st.session_state.get("samed_view","home")=="home":
     if isinstance(event,dict):
         action=event.get("action");token=str(event.get("token",""))
         if action=="profile_loaded" and isinstance(event.get("profile"),dict):
-            p=dict(event["profile"])
-            if p.get("role")=="teacher" or p.get("teacher_id") or p.get("mode")=="teacher":
-                pass
-            else:
-                p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","")
+            p=dict(event["profile"]);p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","")
         elif token and st.session_state.get("_last_visual_event")!=token:
             st.session_state["_last_visual_event"]=token
             if action=="open_onboarding": st.session_state["samed_view"]="onboarding"

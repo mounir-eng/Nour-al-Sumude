@@ -10,10 +10,10 @@ from typing import Any
 import streamlit as st
 import streamlit.components.v1 as components
 
-DASHBOARD_UI_VERSION = "streamlit-dashboard-v18.1-pwa-download"
+DASHBOARD_UI_VERSION = "streamlit-dashboard-v18.2-grade-switch"
 
 _COMPONENT = components.declare_component(
-    "student_samed_dashboard_v18_1",
+    "student_samed_dashboard_v18_2",
     path=str(Path(__file__).with_name("dashboard_component")),
 )
 
@@ -70,6 +70,7 @@ def render_dashboard_v13(
     payload = {
         "name": raw_name,
         "grade": int(profile.get("grade", 12)),
+        "grades": [int(g) for g in (profile.get("grades") or [profile.get("grade", 12)]) if str(g).strip()],
         "grade_label": str(grade_label),
         "overall_pct": _pct(overall_pct),
         "done": max(0, int(done)),
@@ -94,7 +95,7 @@ def render_dashboard_v13(
         chemistry_zip=_zip_b64(unit_bytes, "chemistry12_unit1_complete_offline.zip") if chemistry_live else "",
         pwa_zip=_zip_b64(unit_bytes, "student_samed_pwa_offline.zip"),
         default=None,
-        key="student_samed_dashboard_v18_1",
+        key="student_samed_dashboard_v18_2",
     )
     if not isinstance(event, dict):
         return None
