@@ -313,9 +313,8 @@ function syncFrameHeight() {
 
 function localProfile(){try{return JSON.parse(localStorage.getItem("samed-profile-v1")||"null")}catch(e){return null}}
 function sendAction(action){sendDataToPython({action:action,token:String(Date.now())+"-"+Math.random().toString(36).slice(2)});}
-function isStudentProfile(p){return !!(p&&p.name&&!p.teacher_id&&p.role!=='teacher'&&p.mode!=='teacher');}
-function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();}var p=localProfile();sendAction(isStudentProfile(p)?"open_dashboard":"open_onboarding");return false;}
-function triggerDashboard(event){if(event){event.preventDefault();event.stopPropagation();}var p=localProfile();sendAction(isStudentProfile(p)?"open_dashboard":"open_onboarding");return false;}
+function triggerStart(event){if(event){event.preventDefault();event.stopPropagation();}sendAction(localProfile()?"open_dashboard":"open_onboarding");return false;}
+function triggerDashboard(event){if(event){event.preventDefault();event.stopPropagation();}sendAction(localProfile()?"open_dashboard":"open_onboarding");return false;}
 function triggerMomentum(event) {
   if (event) { event.preventDefault(); event.stopPropagation(); }
   if(!localProfile()){sendAction("open_onboarding");return false;}
@@ -374,8 +373,8 @@ initStreamlitComponent();
 window.addEventListener("load", function () {
   var p=localProfile();
   var account=document.getElementById("accountBtn");
-  if(account) account.textContent=isStudentProfile(p)?"لوحة الطالب":"تسجيل الطالب";
-  if(isStudentProfile(p)) sendDataToPython({action:"profile_loaded",profile:p});
+  if(account) account.textContent=p?"لوحة الطالب":"تسجيل الطالب";
+  if(p) sendDataToPython({action:"profile_loaded",profile:p});
   cleanupParentExerciseUi();
   wireSmoothAnchors();
   syncFrameHeight();
