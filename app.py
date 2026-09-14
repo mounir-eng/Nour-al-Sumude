@@ -33,27 +33,12 @@ st.set_page_config(
 apply_exercise_ui_v18()
 
 try:
-    from admin_panel import is_admin_request, render_admin_panel
-    if is_admin_request():
+    if str(st.query_params.get("admin", "")).strip() == "1":
+        from admin_panel import render_admin_panel
         render_admin_panel()
         st.stop()
 except Exception:
-    if str(st.query_params.get("admin", "")).strip().lower() in {"1", "true", "yes"}:
-        st.error("تعذر فتح لوحة الإدارة. تحقق من وجود ملف admin_panel.py في جذر المشروع.")
-        st.stop()
-
-if st.session_state.get("samed_role") == "teacher" and st.session_state.get("teacher_profile"):
-    _tview = st.session_state.get("samed_view", "home")
-    _tlearn = bool(st.session_state.get("samed_teacher_learn"))
-    if _tview != "home" and not (_tlearn and _tview in ("dashboard", "app", "onboarding")):
-        try:
-            from teacher_panel import render_teacher_panel
-            render_teacher_panel()
-            st.stop()
-        except Exception as exc:
-            st.error("تعذر فتح لوحة الأستاذ.")
-            st.caption(str(exc)[:240])
-            st.stop()
+    pass
 
 # ==========================================================
 # 2. التنسيق (CSS)
@@ -3158,7 +3143,7 @@ def _render_onboarding():
     st.markdown("""<style id="onboarding-parent-v16">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f8fafc!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1220px!important;margin:0 auto!important;padding:0 12px 24px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f8fafc!important}</style>""",unsafe_allow_html=True)
     old=st.session_state.get("student_profile") or {}
     component=components.declare_component("student_samed_onboarding_v16",path=str(Path(__file__).with_name("onboarding_component")))
-    event=component(data={"profile":{"name":old.get("name",""),"grade":int(old.get("grade",12)),"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v16")
+    event=component(data={"profile":{"name":old.get("name",""),"grade":int((old.get("grades") or [old.get("grade",12)])[-1] if isinstance(old.get("grades"), list) and old.get("grades") else old.get("grade",12)),"grades":old.get("grades") or [int(old.get("grade",12))],"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v21")
     if isinstance(event,dict):
         token=str(event.get("token","")).strip();action=str(event.get("action","")).strip()
         if token and st.session_state.get("_onboarding_v16_token")!=token:
@@ -3167,27 +3152,43 @@ def _render_onboarding():
                 st.session_state.pop("_onboarding_error",None);st.session_state["samed_view"]="home";st.rerun()
             if action=="save_profile" and isinstance(event.get("profile"),dict):
                 raw=event["profile"];name=str(raw.get("name","")).strip()
-                try: grade=int(raw.get("grade",12))
-                except Exception: grade=12
-                grade=grade if grade in GRADE_LABELS else 12
+                grades=[]
+                for g in (raw.get("grades") or [raw.get("grade",12)]):
+                    try: gi=int(g)
+                    except Exception: continue
+                    if gi in GRADE_LABELS: grades.append(gi)
+                grades=sorted(set(grades))
+                grade=max(grades) if grades else 12
                 subjects=[s for s in raw.get("subjects",[]) if s in {"phys","chem"}]
                 password=str(raw.get("password","")).strip();confirm=str(raw.get("confirm","")).strip()
                 existing_hash=old.get("passwordHash") or old.get("pinHash")
                 error=""
-                if len(name)<2: error="اكتب اسمًا من حرفين على الأقل."
+                if len(name)<2: error="اكتب اسم مستخدم من حرفين على الأقل."
+                elif not grades: error="اختر صفًا دراسيًا واحدًا على الأقل."
                 elif not subjects: error="اختر مادة واحدة على الأقل."
                 elif (not existing_hash or password or confirm) and len(password)<6: error="يجب أن تتكون كلمة المرور من 6 أحرف على الأقل."
                 elif (not existing_hash or password or confirm) and password!=confirm: error="كلمة المرور وتأكيدها غير متطابقين."
+                sid=old.get("id") or "stu-"+uuid.uuid4().hex[:12]
+                if not error:
+                    try:
+                        import student_cloud_sync as _sync
+                        if _sync.is_configured():
+                            existing=_sync.find_student_by_name(name)
+                            if existing and str(existing.get("id") or "") not in {str(sid), str(old.get("id") or "")}:
+                                error="اسم المستخدم مستخدم مسبقًا."
+                    except Exception:
+                        pass
                 if error:
                     st.session_state["_onboarding_error"]=error;st.rerun()
                 password_hash=hashlib.sha256(password.encode("utf-8")).hexdigest() if password else existing_hash
-                profile={"id":old.get("id") or "local-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
+                profile={"id":sid,"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
                 try:
-                    from student_cloud_sync import record_from_profile, safe_upsert
-                    safe_upsert(record_from_profile(profile))
+                    import student_cloud_sync as _sync
+                    if _sync.is_configured():
+                        _sync.upsert_student(profile)
                 except Exception:
                     pass
-                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
+                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_grade"]=grade;st.session_state["samed_view"]="dashboard";st.rerun()
     st.stop()
 
 def _unit_download_bytes(filename):
@@ -3201,15 +3202,6 @@ def _render_dashboard():
         st.rerun()
 
     _profile_bridge(profile)
-    _offline_event = None
-    try:
-        _progress_bridge = components.declare_component(
-            "samed_progress_bridge_v1",
-            path=str(Path(__file__).with_name("progress_bridge_component")),
-        )
-        _offline_event = _progress_bridge(default=None, key="samed_progress_bridge_v1")
-    except Exception:
-        _offline_event = None
     allowed = profile.get("subjects", ["phys", "chem"])
     physics_live = "phys" in allowed and profile["grade"] == 12
     chemistry_live = "chem" in allowed and profile["grade"] == 12
@@ -3242,7 +3234,12 @@ def _render_dashboard():
     safe_name = (str(profile.get("name", "الطالب"))
                  .replace("&", "&amp;").replace("<", "&lt;")
                  .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;"))
-    grade_label = GRADE_LABELS[profile["grade"]]
+    _grades = profile.get("grades") or [profile.get("grade", 12)]
+    try:
+        _grades = [int(g) for g in _grades]
+    except Exception:
+        _grades = [int(profile.get("grade", 12))]
+    grade_label = " · ".join("الصف " + GRADE_LABELS.get(g, str(g)) for g in _grades)
 
     from streamlit_dashboard_v13 import render_dashboard_v13
     stage_progress = {
@@ -3261,24 +3258,6 @@ def _render_dashboard():
     }
     unit_progress = {"phys": physics_pct, "chem": chemistry_pct}
     display_xp = max(xp, done * 100 + 50 if done else 0)
-    try:
-        from student_cloud_sync import combine_stages, merge_offline, record_from_profile, safe_upsert
-        if str((profile or {}).get("mode") or "") == "teacher_preview":
-            raise RuntimeError("skip teacher preview upsert")
-        _sync_record = record_from_profile(
-            profile,
-            xp=int(display_xp),
-            progress=int(pct),
-            stages=combine_stages(stage_progress, physics_live, chemistry_live),
-        )
-        if isinstance(_offline_event, dict):
-            token = str(_offline_event.get("token", ""))
-            if token and st.session_state.get("_progress_bridge_token") != token:
-                st.session_state["_progress_bridge_token"] = token
-                _sync_record = merge_offline(_sync_record, _offline_event)
-        safe_upsert(_sync_record)
-    except Exception:
-        pass
     action = render_dashboard_v13(
         profile=profile,
         safe_name=safe_name,
@@ -3298,12 +3277,6 @@ def _render_dashboard():
         st.session_state["samed_view"] = "onboarding"
         st.rerun()
     if action == "home":
-        st.session_state["samed_view"] = "home"
-        st.rerun()
-    if action == "logout":
-        for key in ("student_profile", "teacher_profile", "samed_role", "student_name"):
-            st.session_state[key] = None
-        st.session_state["samed_teacher_learn"] = False
         st.session_state["samed_view"] = "home"
         st.rerun()
     if action == "contact":
@@ -3332,127 +3305,23 @@ def _render_dashboard():
 # صفحة الهبوط المعتمدة حاليًا.
 if st.session_state.get("samed_view","home")=="home":
     st.markdown("""<style>[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer{display:none!important}.stApp{background:#fff!important}.block-container{max-width:none!important;padding:0!important;margin:0!important}[data-testid='stElementContainer']{margin:0!important}iframe{display:block;width:100%!important;border:0!important}</style>""",unsafe_allow_html=True)
-    from accounts import confirm_teacher_reset, hash_password, list_approved_teachers, login_student, login_teacher, register_teacher, request_teacher_reset
-    teachers=[]
-    try:
-        teachers=list_approved_teachers()
-    except Exception:
-        teachers=[]
-    notice=st.session_state.pop("samed_auth_notice", "") or ""
-    auth_view=st.session_state.pop("samed_auth_view", "") or ""
     comp=components.declare_component("student_samed_local_first_v18",path=str(Path(__file__).with_name("landing_component")))
-    event=comp(teachers=teachers, notice=notice, auth_view=auth_view, logged_in=bool(st.session_state.get("student_profile") or st.session_state.get("teacher_profile")), role=str(st.session_state.get("samed_role") or ""), default=None, key="student_samed_local_first_v18")
+    event=comp(default=None,key="student_samed_local_first_v18")
     if isinstance(event,dict):
         action=event.get("action");token=str(event.get("token",""))
-        if action=="profile_loaded" and isinstance(event.get("profile"),dict) and event.get("profile",{}).get("teacher_id"):
-            p=dict(event["profile"]);p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","");st.session_state["samed_role"]="student"
-            try:
-                if str((p or {}).get("mode") or "") != "teacher_preview":
-                    from student_cloud_sync import record_from_profile, safe_upsert
-                    rec=record_from_profile(p); rec["teacher_id"]=p.get("teacher_id"); safe_upsert(rec)
-            except Exception:
-                pass
+        if action=="profile_loaded" and isinstance(event.get("profile"),dict):
+            p=dict(event["profile"]);p["subjects"]=[{"physics":"phys","chemistry":"chem"}.get(s,s) for s in p.get("subjects",[]) if {"physics":"phys","chemistry":"chem"}.get(s,s) in {"phys","chem"}];st.session_state["student_profile"]=p;st.session_state["student_name"]=p.get("name","")
         elif token and st.session_state.get("_last_visual_event")!=token:
             st.session_state["_last_visual_event"]=token
-            if action=="teacher_register":
-                try:
-                    ok, msg = register_teacher(event.get("first_name"), event.get("last_name"), event.get("email"), event.get("password"), event.get("confirm"))
-                except Exception:
-                    ok, msg = False, "تعذر إرسال الطلب. أعد المحاولة."
-                st.session_state["samed_auth_notice"]=msg
-                st.session_state["samed_auth_view"]="teacher-register"
-            elif action=="teacher_forgot":
-                try:
-                    code, msg = request_teacher_reset(event.get("email"))
-                except Exception:
-                    code, msg = "", "تعذر إرسال رمز الاستعادة. أعد المحاولة."
-                if code:
-                    import time as _time
-                    st.session_state["samed_reset_email"] = str(event.get("email") or "").strip().lower()
-                    st.session_state["samed_reset_hash"] = hash_password(code)
-                    st.session_state["samed_reset_exp"] = _time.time() + 15 * 60
-                    st.session_state["samed_auth_view"] = "teacher-reset"
-                else:
-                    st.session_state["samed_auth_view"] = "teacher-forgot"
-                st.session_state["samed_auth_notice"] = msg
-            elif action=="teacher_reset":
-                try:
-                    import time as _time
-                    email = str(event.get("email") or "").strip().lower()
-                    expected = st.session_state.get("samed_reset_hash") or ""
-                    exp = float(st.session_state.get("samed_reset_exp") or 0)
-                    stored_email = str(st.session_state.get("samed_reset_email") or "")
-                    if not expected or _time.time() > exp or (stored_email and stored_email != email):
-                        ok, msg = False, "رمز الاستعادة غير صحيح أو منتهٍ. اطلب رمزًا جديدًا."
-                    else:
-                        ok, msg = confirm_teacher_reset(email, event.get("code"), event.get("password"), event.get("confirm"), expected)
-                    if ok:
-                        st.session_state.pop("samed_reset_hash", None)
-                        st.session_state.pop("samed_reset_exp", None)
-                        st.session_state.pop("samed_reset_email", None)
-                        st.session_state["samed_auth_view"] = "teacher-login"
-                    else:
-                        st.session_state["samed_auth_view"] = "teacher-reset"
-                except Exception:
-                    ok, msg = False, "تعذر ضبط كلمة المرور. أعد المحاولة."
-                    st.session_state["samed_auth_view"] = "teacher-reset"
-                st.session_state["samed_auth_notice"] = msg
-            elif action=="teacher_login":
-                try:
-                    teacher, msg = login_teacher(event.get("email"), event.get("password"))
-                except Exception:
-                    teacher, msg = None, "تعذر التحقق من الدخول. أعد المحاولة."
-                if teacher:
-                    st.session_state["teacher_profile"]=teacher
-                    st.session_state["samed_role"]="teacher"
-                    st.session_state["samed_teacher_learn"]=False
-                    st.session_state["samed_view"]="teacher_dashboard"
-                else:
-                    st.session_state["samed_auth_notice"]=msg
-                    st.session_state["samed_auth_view"]="teacher-login"
-            elif action=="student_login":
-                try:
-                    profile, msg = login_student(event.get("teacher_id"), event.get("name"), event.get("password"))
-                except Exception:
-                    profile, msg = None, "تعذر التحقق من الدخول. أعد المحاولة."
-                if profile:
-                    st.session_state["student_profile"]=profile
-                    st.session_state["student_name"]=profile.get("name","")
-                    st.session_state["samed_role"]="student"
-                    st.session_state["samed_view"]="dashboard"
-                else:
-                    st.session_state["samed_auth_notice"]=msg
-            elif action=="logout":
-                for key in ("student_profile", "teacher_profile", "samed_role", "student_name"):
-                    st.session_state[key] = None
-                st.session_state["samed_teacher_learn"] = False
-                st.session_state["samed_view"] = "home"
-            elif action=="open_home":
-                st.session_state["samed_view"] = "home"
-            elif action=="open_teacher_dashboard":
-                if st.session_state.get("teacher_profile"):
-                    st.session_state["samed_teacher_learn"] = False
-                    st.session_state["samed_view"] = "teacher_dashboard"
-            elif action=="open_dashboard":
-                st.session_state["samed_view"]="dashboard" if st.session_state.get("student_profile") else "home"
-            elif action=="open_momentum":
-                st.session_state["samed_view"]="app" if st.session_state.get("student_profile") else "home"
+            if action=="open_onboarding": st.session_state["samed_view"]="onboarding"
+            elif action=="open_dashboard": st.session_state["samed_view"]="dashboard" if st.session_state.get("student_profile") else "onboarding"
+            elif action=="open_momentum": st.session_state["samed_view"]="app" if st.session_state.get("student_profile") else "onboarding"
             elif action=="open_contact":
                 st.session_state["_contact_return_page"]="app.py";st.session_state["_contact_return_view"]="home";st.switch_page("pages/contact.py")
             st.rerun()
     st.stop()
 if st.session_state.get("samed_view")=="onboarding": _render_onboarding()
-if st.session_state.get("samed_view")=="dashboard":
-    if st.session_state.get("samed_teacher_learn") and st.session_state.get("teacher_profile"):
-        t1, t2 = st.columns([3, 1])
-        with t1:
-            st.info("أنت تتصفح المحتوى التعليمي بحساب الأستاذ.")
-        with t2:
-            if st.button("لوحة الأستاذ", type="primary", use_container_width=True, key="teacher_back_from_learn"):
-                st.session_state["samed_teacher_learn"] = False
-                st.session_state["samed_view"] = "teacher_dashboard"
-                st.rerun()
-    _render_dashboard()
+if st.session_state.get("samed_view")=="dashboard": _render_dashboard()
 
 render_exercise_header_v18(
     subject="الفيزياء", track="تدريب إضافي", unit_title="الزخم الخطي والدفع",

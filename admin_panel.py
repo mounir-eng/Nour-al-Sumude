@@ -1,356 +1,229 @@
-"""صفحة أدمن محمية — تُفتح عبر ?admin=1 ولا تظهر للطلبة."""
+"""Admin dashboard: student stats plus contact inbox with process/delete."""
 from __future__ import annotations
 
-import hmac
 import html
-import json
-from pathlib import Path
+from typing import Any
 
 import streamlit as st
-import streamlit.components.v1 as components
 
-from student_cloud_sync import is_configured, list_contact_messages, list_students
+import student_cloud_sync as sync
 
-_ADMIN_CSS = r"""
-<style id="samed-admin-ui-v4">
-html,body,.stApp,[data-testid="stAppViewContainer"],.block-container{
-  direction:rtl!important;text-align:right!important;
-  font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important
+GRADE_LABELS = {
+    6: "السادس",
+    7: "السابع",
+    8: "الثامن",
+    9: "التاسع",
+    10: "العاشر",
+    11: "الحادي عشر",
+    12: "الثاني عشر",
 }
-.stApp,[data-testid="stAppViewContainer"]{
-  background:
-    radial-gradient(1200px 420px at 100% -10%, rgba(47,122,118,.10), transparent 55%),
-    radial-gradient(900px 380px at 0% 0%, rgba(241,191,80,.10), transparent 50%),
-    #eef3f1 !important;
-  color:#122f32!important
-}
-[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],
-section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}
-section[data-testid="stMain"] .block-container,[data-testid="stMainBlockContainer"]{
-  max-width:1180px!important;padding:22px 18px 40px!important
-}
-.admin-box{
-  background:#fff;border:1px solid #d9e6e2;border-radius:28px;padding:32px 28px;
-  max-width:420px;margin:14vh auto 0;box-shadow:0 24px 60px rgba(18,47,50,.10);text-align:center
-}
-.admin-box h1{font-size:28px;margin:0 0 8px;letter-spacing:-.4px}
-.admin-box p{color:#6a7f7b;font-size:14px;line-height:1.9;margin:0 0 18px}
-.ad-hero{
-  display:flex;align-items:center;gap:16px;
-  background:linear-gradient(135deg,#123438 0%,#1c5459 52%,#2f7a76 120%);
-  color:#fff;border-radius:28px;padding:26px 28px;margin-bottom:18px;
-  box-shadow:0 22px 50px rgba(18,47,50,.20)
-}
-.ad-hero .mark{
-  width:64px;height:64px;border-radius:22px;flex:0 0 auto;
-  display:grid;place-items:center;font-size:28px;
-  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14)
-}
-.ad-hero b{display:block;font-size:28px;letter-spacing:-.5px;line-height:1.25}
-.ad-hero small{display:block;margin-top:6px;color:#d7ece8;font-size:14px;font-weight:700}
-.ad-kicker{
-  margin:4px 4px 12px;color:#5f7773;font-size:12px;font-weight:800;letter-spacing:.4px
-}
-.ad-card{
-  background:#fff;border:1px solid #dce8e4;border-radius:24px;
-  padding:20px 20px 16px;margin:0 0 14px;
-  box-shadow:0 12px 30px rgba(18,47,50,.06)
-}
-.ad-person{display:flex;align-items:center;gap:14px;margin-bottom:14px}
-.ad-avatar{
-  width:52px;height:52px;border-radius:18px;flex:0 0 auto;
-  display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;
-  background:linear-gradient(145deg,#173f44,#2f7a76)
-}
-.ad-person b{display:block;font-size:18px;color:#122f32}
-.ad-person small{display:block;margin-top:3px;color:#6a7f7b;font-size:13px}
-.ad-pill{
-  margin-right:auto;background:#fff6df;color:#8a6a1d;border:1px solid #f1dd9a;
-  border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800
-}
-.ad-msg h3{margin:0 0 6px;font-size:18px}
-.ad-msg .meta{margin:0 0 12px;color:#6a7f7b;font-size:13px}
-.ad-msg .body{
-  margin:0;background:#f7fbfa;border:1px solid #e4eeeb;border-radius:16px;
-  padding:14px 16px;line-height:1.9;color:#1b3c3f;white-space:pre-wrap
-}
-.ad-empty{
-  background:#fff;border:1px dashed #c9ddd8;border-radius:28px;
-  padding:56px 24px;text-align:center;color:#6a7f7b;
-  box-shadow:0 10px 28px rgba(18,47,50,.04)
-}
-.ad-empty .ico{
-  width:72px;height:72px;margin:0 auto 14px;border-radius:24px;
-  display:grid;place-items:center;font-size:32px;background:#eaf6f3
-}
-.ad-empty b{display:block;color:#122f32;font-size:20px;margin-bottom:6px}
-.ad-empty p{margin:0;line-height:1.8}
-.stButton>button{
-  border-radius:16px!important;min-height:48px!important;font-weight:800!important;
-  border:1px solid #d5e3e0!important;background:#fff!important;color:#16383b!important
-}
-.st-key-admin_open_teachers,.st-key-admin_open_messages{max-width:170px}
-.st-key-admin_open_teachers button,.st-key-admin_open_messages button{
-  width:158px!important;height:158px!important;min-height:158px!important;
-  display:flex!important;flex-direction:column!important;align-items:center!important;
-  justify-content:flex-end!important;gap:0!important;padding:18px 10px 16px!important;
-  border-radius:32px!important;background:#fff!important;border:1px solid #dce8e4!important;
-  box-shadow:0 16px 36px rgba(18,47,50,.08)!important;font-size:14px!important;line-height:1.35!important
-}
-.st-key-admin_open_teachers button:hover,.st-key-admin_open_messages button:hover{
-  transform:translateY(-2px);box-shadow:0 20px 40px rgba(18,47,50,.12)!important;border-color:#c5ddd7!important
-}
-.st-key-admin_open_teachers button::before,.st-key-admin_open_messages button::before{
-  display:grid;place-items:center;width:68px;height:68px;border-radius:22px;
-  font-size:32px;margin:0 auto 12px;content:""
-}
-.st-key-admin_open_teachers button::before{
-  content:"👨‍🏫";background:linear-gradient(160deg,#e7f6f2,#cfeee6)
-}
-.st-key-admin_open_messages button::before{
-  content:"✉️";background:linear-gradient(160deg,#fff6df,#f7e7b8)
-}
-.st-key-admin_back_teachers button,.st-key-admin_back_messages button{
-  background:#fff!important;min-height:44px!important
-}
-.st-key-admin_approve button{
-  background:linear-gradient(135deg,#1f585e,#2f7a76)!important;color:#fff!important;border:0!important
-}
-.st-key-admin_reject button,.stButton button[kind="secondary"]{
-  background:#fff6f5!important;color:#9a3d38!important;border:1px solid #f0d0cd!important
-}
-@media(max-width:800px){
-  .ad-hero{display:grid;padding:20px}
-  .st-key-admin_open_teachers button,.st-key-admin_open_messages button{width:100%!important}
-}
+
+_CSS = r"""
+<style id="samed-admin-ui-v5">
+:root{--ink:#173b3d;--muted:#6f827e;--line:#dce6e3;--teal:#245e65;--paper:#fff;--bg:#f4f8f7;--gold:#f1bf50;--danger:#b42318}
+html,body,.stApp,[data-testid="stAppViewContainer"]{direction:rtl!important;text-align:right!important;background:var(--bg)!important;color:var(--ink)!important;font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important}
+[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}
+section[data-testid="stMain"] .block-container{max-width:1100px!important;padding:16px 18px 40px!important}
+.admin-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin-bottom:14px}
+.admin-brand{display:flex;align-items:center;gap:10px}
+.admin-mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#173f44,#347d78);font-size:20px}
+.admin-brand b{display:block;font-size:16px}.admin-brand small{display:block;color:var(--muted);font-size:11px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center}
+.kpi b{display:block;font-size:26px;color:#173f44}.kpi small{color:var(--muted);font-size:12px;font-weight:700}
+.icon-row{display:flex;gap:12px;justify-content:center;margin:8px 0 18px}
+.msg-card,.stu-row{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+.msg-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.msg-top b{font-size:15px}.msg-top small{color:var(--muted)}
+.msg-body{white-space:pre-wrap;line-height:1.8;margin:8px 0;color:#244}
+.page-title{margin:0 0 6px;font-size:22px}.page-sub{color:var(--muted);margin:0 0 16px;font-size:13px}
+.empty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
+.stButton>button{border-radius:12px!important;min-height:42px!important;font-weight:800!important}
+.st-key-admin_open_messages button,.st-key-admin_open_processed button{min-height:88px!important;background:#fff!important;border:1px solid var(--line)!important;color:#173b3d!important}
+.banner{background:#fff8e8;border:1px solid #eedcae;color:#735b20;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px}
+@media(max-width:800px){.kpis{grid-template-columns:1fr 1fr}}
 </style>
 """
 
 
-def is_admin_request() -> bool:
-    try:
-        value = st.query_params.get("admin", "")
-    except Exception:
-        value = ""
-    if isinstance(value, list):
-        value = value[0] if value else ""
-    return str(value).strip().lower() in {"1", "true", "yes"}
-
-
-def _admin_password() -> str:
-    try:
-        return str(st.secrets.get("admin", {}).get("password", "")).strip()
-    except Exception:
-        return ""
-
-
-def _passwords_match(entered: str, expected: str) -> bool:
-    left = entered.encode("utf-8")
-    right = expected.encode("utf-8")
-    if len(left) != len(right):
-        return False
-    return hmac.compare_digest(left, right)
-
-
-def _esc(value: object) -> str:
+def _esc(value: Any) -> str:
     return html.escape(str(value or ""), quote=True)
 
 
-def _initial(name: str) -> str:
-    text = (name or "؟").strip()
-    return text[:1].upper() if text else "؟"
+def _grade_label(raw: str) -> str:
+    parts = []
+    for bit in str(raw or "").replace("|", ",").split(","):
+        bit = bit.strip()
+        if not bit:
+            continue
+        try:
+            g = int(bit)
+        except Exception:
+            parts.append(bit)
+            continue
+        parts.append("الصف " + GRADE_LABELS.get(g, str(g)))
+    return " · ".join(parts) or "—"
 
 
-def _hero(title: str, subtitle: str, icon: str) -> None:
+def _num(value: Any) -> float:
+    try:
+        return float(str(value).replace("%", "").strip() or 0)
+    except Exception:
+        return 0.0
+
+
+def _demo_students() -> list[dict[str, Any]]:
+    return [
+        {"id": "demo-1", "name": "أحمد خالد", "grade": "12", "subjects": "phys,chem", "xp": "240", "progress": "68", "badges": "3", "last_seen": "—"},
+        {"id": "demo-2", "name": "سارة علي", "grade": "11,12", "subjects": "phys", "xp": "120", "progress": "41", "badges": "1", "last_seen": "—"},
+        {"id": "demo-3", "name": "يوسف منير", "grade": "6,7", "subjects": "chem", "xp": "80", "progress": "22", "badges": "0", "last_seen": "—"},
+    ]
+
+
+def _students() -> tuple[list[dict[str, Any]], bool]:
+    if sync.is_configured():
+        try:
+            return sync.list_students(), True
+        except Exception:
+            return _demo_students(), False
+    return _demo_students(), False
+
+
+def _login() -> bool:
+    if st.session_state.get("samed_admin_ok"):
+        return True
+    st.markdown(_CSS, unsafe_allow_html=True)
     st.markdown(
-        f'<div class="ad-hero"><span class="mark">{icon}</span>'
-        f'<span><b>{_esc(title)}</b><small>{_esc(subtitle)}</small></span></div>',
+        '<div class="admin-nav"><div class="admin-brand"><span class="admin-mark">🛡️</span>'
+        "<span><b>لوحة الإدارة</b><small>دخول محمي</small></span></div></div>",
         unsafe_allow_html=True,
     )
-
-
-def _pending_teachers() -> list[dict]:
+    expected = ""
     try:
-        from accounts import list_pending_teachers
-        return list_pending_teachers() or []
+        expected = str((st.secrets.get("admin") or {}).get("password") or "").strip()
     except Exception:
-        return []
-
-
-def _contact_rows() -> list[dict]:
-    if not is_configured():
-        return []
-    try:
-        return list_contact_messages() or []
-    except Exception:
-        return []
-
-
-def _render_teachers_page() -> None:
-    _hero("طلبات الأساتذة", "راجع كل طلب على حدة ثم وافق أو ارفض", "👨‍🏫")
-    top, _ = st.columns([1.1, 3])
-    with top:
-        if st.button("← عودة إلى لوحة الإدارة", key="admin_back_teachers", use_container_width=True):
-            st.session_state["admin_view"] = "home"
+        expected = ""
+    if not expected:
+        st.warning("أضف كلمة مرور الأدمن في Streamlit Cloud عبر Settings → Secrets ثم أعد تشغيل التطبيق.")
+        return False
+    pwd = st.text_input("كلمة مرور الأدمن", type="password", key="admin_password_input")
+    if st.button("دخول", type="primary", use_container_width=True, key="admin_login_btn"):
+        if pwd == expected:
+            st.session_state["samed_admin_ok"] = True
             st.rerun()
-    try:
-        from accounts import approve_teacher, reject_teacher
-        pending = _pending_teachers()
-    except Exception:
-        st.error("تعذر تحميل الطلبات الآن. حاول مرة أخرى لاحقًا.")
-        return
-    if not pending:
-        st.markdown(
-            '<div class="ad-empty"><div class="ico">✅</div>'
-            "<b>لا توجد طلبات جديدة</b><p>عندما يسجّل أستاذ سيظهر طلبه في هذه الصفحة فقط.</p></div>",
-            unsafe_allow_html=True,
-        )
-        return
-    for row in pending:
-        name = row.get("name") or "أستاذ"
-        email = row.get("email") or ""
-        st.markdown(
-            f'<div class="ad-card"><div class="ad-person">'
-            f'<span class="ad-avatar">{_esc(_initial(str(name)))}</span>'
-            f'<span><b>{_esc(name)}</b><small>{_esc(email)}</small></span>'
-            f'<span class="ad-pill">بانتظار المراجعة</span></div></div>',
-            unsafe_allow_html=True,
-        )
-        c1, c2, _ = st.columns([1, 1, 2])
-        with c1:
-            if st.button("موافقة", key=f"ok-{row['id']}", use_container_width=True):
-                approve_teacher(row["id"])
-                st.rerun()
-        with c2:
-            if st.button("رفض", key=f"no-{row['id']}", use_container_width=True):
-                reject_teacher(row["id"])
-                st.rerun()
+        st.error("كلمة المرور غير صحيحة.")
+    return False
 
 
-def _render_messages_page() -> None:
-    _hero("رسائل التواصل", "كل رسالة في بطاقة مستقلة وواضحة", "✉️")
-    top, _ = st.columns([1.1, 3])
-    with top:
-        if st.button("← عودة إلى لوحة الإدارة", key="admin_back_messages", use_container_width=True):
-            st.session_state["admin_view"] = "home"
-            st.rerun()
-    try:
-        messages = _contact_rows()
-    except Exception:
-        st.error("تعذر تحميل الرسائل الآن. حاول مرة أخرى لاحقًا.")
-        return
-    if not messages:
-        st.markdown(
-            '<div class="ad-empty"><div class="ico">✉️</div>'
-            "<b>لا توجد رسائل بعد</b><p>ستظهر هنا الرسائل القادمة من صفحة التواصل.</p></div>",
-            unsafe_allow_html=True,
-        )
-        return
-    for row in messages[:60]:
-        name = row.get("name") or "بدون اسم"
-        subject = row.get("subject") or "بدون موضوع"
-        created = str(row.get("created_at") or "")[:19].replace("T", " ")
-        email = row.get("email") or "—"
-        institution = row.get("institution") or "—"
-        body = row.get("message") or ""
-        st.markdown(
-            f'<div class="ad-card ad-msg"><div class="ad-person">'
-            f'<span class="ad-avatar">{_esc(_initial(str(name)))}</span>'
-            f'<span><b>{_esc(subject)}</b><small>{_esc(name)} · {_esc(email)}</small></span>'
-            f'<span class="ad-pill">{_esc(created)}</span></div>'
-            f'<p class="meta">{_esc(institution)}</p>'
-            f'<p class="body">{_esc(body)}</p></div>',
-            unsafe_allow_html=True,
-        )
+def _nav(title: str, subtitle: str) -> None:
+    st.markdown(
+        '<div class="admin-nav"><div class="admin-brand"><span class="admin-mark">🛡️</span>'
+        f"<span><b>الطالب الصامد</b><small>{_esc(subtitle)}</small></span></div></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(f'<h1 class="page-title">{_esc(title)}</h1>', unsafe_allow_html=True)
 
 
 def _render_home() -> None:
-    pending = _pending_teachers()
-    messages = _contact_rows()
-    _hero("لوحة الإدارة", "أيقونات سريعة، ثم متابعة تقدّم الطلبة", "🛡️")
-    st.markdown('<div class="ad-kicker">اختصارات الإدارة</div>', unsafe_allow_html=True)
+    students, live = _students()
+    n = len(students)
+    avg = int(round(sum(_num(s.get("progress")) for s in students) / n)) if n else 0
+    badges = int(sum(_num(s.get("badges")) for s in students))
+    grades = set()
+    for s in students:
+        for bit in str(s.get("grade") or "").split(","):
+            if bit.strip():
+                grades.add(bit.strip())
+    if not live:
+        st.markdown('<div class="banner">لم يُضبط Google Sheets بعد، لذلك تُعرض بيانات تجريبية.</div>', unsafe_allow_html=True)
     st.markdown(
-        f"""
-<style>
-.st-key-admin_open_teachers button::after{{
-  content:"{len(pending)} بانتظار المراجعة";display:block;margin-top:6px;
-  color:#6a7f7b;font-size:11px;font-weight:700
-}}
-.st-key-admin_open_messages button::after{{
-  content:"{len(messages)} رسالة";display:block;margin-top:6px;
-  color:#6a7f7b;font-size:11px;font-weight:700
-}}
-</style>
-""",
+        '<div class="kpis">'
+        f'<div class="kpi"><b>{n}</b><small>طالب مسجّل</small></div>'
+        f'<div class="kpi"><b>{len(grades)}</b><small>صفوف نشطة</small></div>'
+        f'<div class="kpi"><b>{avg}%</b><small>متوسط التقدم</small></div>'
+        f'<div class="kpi"><b>{badges}</b><small>أوسمة</small></div></div>',
         unsafe_allow_html=True,
     )
-    d1, d2, d3 = st.columns([1, 1, 2])
-    with d1:
-        if st.button("طلبات الأساتذة", key="admin_open_teachers", use_container_width=True):
-            st.session_state["admin_view"] = "teachers"
-            st.rerun()
-    with d2:
-        if st.button("رسائل التواصل", key="admin_open_messages", use_container_width=True):
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("📬 الرسائل", key="admin_open_messages", use_container_width=True):
             st.session_state["admin_view"] = "messages"
             st.rerun()
-
-    live = False
-    students: list[dict] | None = None
-    if is_configured():
-        try:
-            students = list_students()
-            live = True
-        except Exception:
-            st.error("تعذر تحميل بيانات الطلبة الآن. حاول مرة أخرى لاحقًا.")
-            students = []
-            live = True
-
-    html_path = Path(__file__).with_name("admin_dashboard.html")
-    page = html_path.read_text(encoding="utf-8")
-    if live:
-        payload = json.dumps(students or [], ensure_ascii=False)
-        page = page.replace(
-            "/*__STUDENTS_INJECT__*/",
-            f"window.SAMED_LIVE=true;window.SAMED_ROLE='admin';window.SAMED_STUDENTS={payload};",
+    with c2:
+        if st.button("✅ الرسائل المعالجة", key="admin_open_processed", use_container_width=True):
+            st.session_state["admin_view"] = "processed"
+            st.rerun()
+    st.markdown('<p class="page-sub">تقدم الطلبة</p>', unsafe_allow_html=True)
+    if not students:
+        st.markdown('<div class="empty">لا يوجد طلبة مسجّلون بعد.</div>', unsafe_allow_html=True)
+        return
+    for s in students:
+        subjects = str(s.get("subjects") or "").replace("phys", "فيزياء").replace("chem", "كيمياء")
+        st.markdown(
+            f'<div class="stu-row"><div class="msg-top"><b>{_esc(s.get("name") or "طالب")}</b>'
+            f'<small>{_esc(_grade_label(s.get("grade") or ""))}</small></div>'
+            f'<small>المواد: {_esc(subjects or "—")} · التقدم: {_esc(s.get("progress") or 0)}% · '
+            f'أوسمة: {_esc(s.get("badges") or 0)} · نقاط: {_esc(s.get("xp") or 0)}</small></div>',
+            unsafe_allow_html=True,
         )
+
+
+def _render_messages(*, processed: bool) -> None:
+    title = "الرسائل المعالجة" if processed else "رسائل التواصل"
+    _nav(title, "لوحة الإدارة")
+    if st.button("← رجوع", key="admin_back_" + ("processed" if processed else "messages")):
+        st.session_state["admin_view"] = "home"
+        st.rerun()
+    rows = []
+    if sync.is_configured():
+        try:
+            rows = [m for m in sync.list_contact_messages() if ((m.get("status") or "new") == "processed") is processed]
+        except Exception:
+            st.error("تعذّر قراءة الرسائل من Google Sheets.")
+            return
     else:
-        page = page.replace("/*__STUDENTS_INJECT__*/", "window.SAMED_ROLE='admin';")
-    components.html(page, height=900, scrolling=True)
+        st.markdown('<div class="banner">لم يُضبط Google Sheets بعد، لذلك لا تظهر رسائل حقيقية.</div>', unsafe_allow_html=True)
+    if not rows:
+        st.markdown('<div class="empty">لا توجد رسائل هنا حاليًا.</div>', unsafe_allow_html=True)
+        return
+    for msg in rows:
+        mid = str(msg.get("id") or "")
+        st.markdown(
+            f'<div class="msg-card"><div class="msg-top"><div><b>{_esc(msg.get("name") or "بدون اسم")}</b>'
+            f'<br><small>{_esc(msg.get("subject") or "بدون موضوع")} · {_esc(msg.get("created_at") or "")}</small></div>'
+            f'<small>{_esc(msg.get("email") or "")}</small></div>'
+            f'<div class="msg-body">{_esc(msg.get("message") or "")}</div>'
+            f'<small>المؤسسة: {_esc(msg.get("institution") or "—")}</small></div>',
+            unsafe_allow_html=True,
+        )
+        cols = st.columns(2 if not processed else 1)
+        if not processed:
+            with cols[0]:
+                if st.button("تمت المعالجة", key=f"admin_done_{mid}", use_container_width=True):
+                    sync.update_message_status(mid, "processed")
+                    st.rerun()
+            with cols[1]:
+                if st.button("حذف الرسالة", key=f"admin_del_{mid}", use_container_width=True):
+                    sync.delete_message(mid)
+                    st.rerun()
+        else:
+            with cols[0]:
+                if st.button("حذف الرسالة", key=f"admin_delp_{mid}", use_container_width=True):
+                    sync.delete_message(mid)
+                    st.rerun()
 
 
 def render_admin_panel() -> None:
-    st.markdown(_ADMIN_CSS, unsafe_allow_html=True)
-    expected = _admin_password()
-    if not expected:
-        st.markdown(
-            '<div class="admin-box"><h1>لوحة الإدارة</h1>'
-            "<p>أضف كلمة مرور الأدمن من إعدادات التطبيق ثم أعد التشغيل.</p></div>",
-            unsafe_allow_html=True,
-        )
-        st.code('[admin]\npassword = "كلمة-مرور-خاصة-بك"', language="toml")
-        st.stop()
-
-    if not st.session_state.get("samed_admin_ok"):
-        st.markdown(
-            '<div class="admin-box"><h1>دخول الأدمن</h1>'
-            "<p>هذه الصفحة للمشرف فقط.</p></div>",
-            unsafe_allow_html=True,
-        )
-        entered = st.text_input("كلمة مرور الأدمن", type="password", key="samed_admin_password")
-        if st.button("دخول", type="primary"):
-            if _passwords_match(entered.strip(), expected):
-                st.session_state["samed_admin_ok"] = True
-                st.rerun()
-            st.error("كلمة المرور غير صحيحة.")
-        st.stop()
-
     if "admin_view" not in st.session_state:
         st.session_state["admin_view"] = "home"
+    if not _login():
+        st.stop()
+    st.markdown(_CSS, unsafe_allow_html=True)
     view = st.session_state.get("admin_view") or "home"
-    if view == "teachers":
-        _render_teachers_page()
-        return
     if view == "messages":
-        _render_messages_page()
-        return
-    _render_home()
+        _render_messages(processed=False)
+    elif view == "processed":
+        _render_messages(processed=True)
+    else:
+        _nav("لوحة الإدارة", "إحصائيات الطلبة والرسائل")
+        _render_home()
