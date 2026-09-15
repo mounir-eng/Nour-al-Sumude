@@ -31,10 +31,8 @@ st.set_page_config(
 
 def _is_admin_request():
     try:
-        val = st.query_params.get("admin", "")
-        if isinstance(val, list):
-            val = val[0] if val else ""
-        return str(val).strip().lower() in {"1", "true", "yes"}
+        q = st.query_params
+        return str(q.get("admin", "")).strip() in {"1", "true", "yes"}
     except Exception:
         return False
 
@@ -3172,12 +3170,35 @@ def _render_onboarding():
                 if error:
                     st.session_state["_onboarding_error"]=error;st.rerun()
                 password_hash=hashlib.sha256(password.encode("utf-8")).hexdigest() if password else existing_hash
-                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":[grade],"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
+                raw_grades=raw.get("grades") or [grade]
+                grades=[]
+                for g in raw_grades:
+                    try: gi=int(g)
+                    except Exception: continue
+                    if gi in GRADE_LABELS and gi not in grades: grades.append(gi)
+                if not grades: grades=[grade]
+                grade=grades[0]
+                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
                 try:
                     from student_cloud_sync import upsert_student
-                    saved=upsert_student(profile)
-                    if isinstance(saved,dict) and saved.get("id"):
-                        profile["id"]=saved.get("id") or profile["id"]
+                    upsert_student(profile)
+                except Exception:
+                    pass
+                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
+            if action=="login_student" and isinstance(event.get("profile"),dict):
+                raw=event["profile"];name=str(raw.get("name","")).strip()
+                password=str(raw.get("password","")).strip()
+                try:
+                    from student_cloud_sync import find_student_by_name, upsert_student
+                    row=find_student_by_name(name)
+                except Exception:
+                    row=None
+                if not name or not password:
+                    st.session_state["_onboarding_error"]="أدخل اسم المستخدم وكلمة المرور.";st.rerun()
+                profile={"id":(row or {}).get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":int((row or {}).get("grade") or 12) if str((row or {}).get("grade") or "12").split(",")[0].isdigit() else 12,"subjects":["phys","chem"],"passwordHash":hashlib.sha256(password.encode("utf-8")).hexdigest(),"mode":"local"}
+                try:
+                    from student_cloud_sync import upsert_student
+                    upsert_student(profile)
                 except Exception:
                     pass
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
@@ -3247,12 +3268,7 @@ def _render_dashboard():
     display_xp = max(xp, done * 100 + 50 if done else 0)
     try:
         from student_cloud_sync import upsert_student
-        upsert_student({
-            **profile,
-            "xp": display_xp,
-            "progress": pct,
-            "badges": profile.get("badges") or "",
-        })
+        upsert_student({**profile, "xp": display_xp, "progress": pct})
     except Exception:
         pass
     action = render_dashboard_v13(

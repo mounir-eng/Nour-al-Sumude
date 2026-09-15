@@ -7,6 +7,7 @@ from typing import Any
 
 _LAST_ERROR = ""
 _CREATED_URL = ""
+_LAST_UPSERT = ""
 
 HEADERS = [
     "id", "name", "grade", "subjects", "xp", "progress", "badges",
@@ -40,6 +41,10 @@ def sheets_configured() -> bool:
 
 def last_sheets_error() -> str:
     return _LAST_ERROR
+
+
+def last_upsert_name() -> str:
+    return _LAST_UPSERT
 
 
 def last_created_url() -> str:
@@ -223,10 +228,15 @@ def find_student_by_name(name: str) -> dict[str, Any] | None:
 
 
 def upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
+    global _LAST_UPSERT
     if not sheets_configured():
+        _set_error(message="لم يُضبط Google Sheets في Secrets.")
         return dict(profile)
     try:
-        return _upsert_student(profile)
+        saved = _upsert_student(profile)
+        _LAST_UPSERT = str(saved.get("name") or "")
+        _set_error(message="")
+        return saved
     except Exception as exc:
         _set_error(exc)
         return dict(profile)
