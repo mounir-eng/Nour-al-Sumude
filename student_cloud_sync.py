@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 _LAST_ERROR = ""
+_CREATED_URL = ""
 
 HEADERS = [
     "id", "name", "grade", "subjects", "xp", "progress", "badges",
@@ -25,10 +26,9 @@ def _secrets():
 
 
 def sheets_configured() -> bool:
-    sec = _secrets()
     try:
-        g = sec.get("gsheets", {})
-        gcp = sec.get("gcp_service_account", {})
+        g = _secrets().get("gsheets", {})
+        gcp = _secrets().get("gcp_service_account", {})
         return bool(
             (g.get("spreadsheet") or g.get("spreadsheet_id") or g.get("url"))
             and gcp.get("client_email")
@@ -42,6 +42,10 @@ def last_sheets_error() -> str:
     return _LAST_ERROR
 
 
+def last_created_url() -> str:
+    return _CREATED_URL
+
+
 def _service_email() -> str:
     try:
         return str(_secrets().get("gcp_service_account", {}).get("client_email") or "").strip()
@@ -49,19 +53,32 @@ def _service_email() -> str:
         return ""
 
 
+def _clean_ref(raw: str) -> str:
+    text = str(raw or "").strip().strip('"').strip("'")
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    return text.strip()
+
+
+def spreadsheet_key() -> str:
+    g = _secrets().get("gsheets", {})
+    raw = _clean_ref(g.get("spreadsheet") or g.get("spreadsheet_id") or g.get("url") or "")
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", raw)
+    if match:
+        return match.group(1)
+    if re.fullmatch(r"[a-zA-Z0-9-_]{30,}", raw):
+        return raw
+    return raw
+
+
 def _friendly_error(exc: Exception) -> str:
-    name = type(exc).__name__
     email = _service_email()
-    share = (
-        f" شارك الجدول مع {email} بصلاحية محرر."
-        if email
-        else " شارك الجدول مع إيميل الحساب الخدمي بصلاحية محرر."
-    )
+    share = f" شارك الجدول مع {email} بصلاحية محرر." if email else " شارك الجدول مع إيميل الحساب الخدمي بصلاحية محرر."
+    name = type(exc).__name__
     text = str(exc).lower()
     if "SpreadsheetNotFound" in name or "not found" in text:
-        return "لم يتم العثور على جدول Google Sheets. تحقق من الاسم أو الرابط في Secrets." + share
+        return "الحساب الخدمي لا يرى هذا الجدول. افتح الجدول → مشاركة → أضف الإيميل كمحرر." + share
     if "APIError" in name or "403" in str(exc) or "permission" in text:
-        return "لا توجد صلاحية لفتح الجدول." + share
+        return "لا توجد صلاحية لفتح الجدول. فعّل Google Sheets API و Google Drive API." + share
     return "تعذر الاتصال بـ Google Sheets. تحقق من Secrets ومشاركة الجدول."
 
 
@@ -88,46 +105,72 @@ def _client():
     return gspread.authorize(creds)
 
 
-def _open_spreadsheet(gc, raw: str):
-    raw = (raw or "").strip().strip('"').strip("'")
+def _open_spreadsheet(gc):
+    raw = spreadsheet_key()
     if not raw:
         raise ValueError("empty spreadsheet")
-    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", raw)
-    if match:
-        return gc.open_by_key(match.group(1))
+    if re.fullmatch(r"[a-zA-Z0-9-_]{30,}", raw):
+        return gc.open_by_key(raw)
     if raw.startswith("http://") or raw.startswith("https://"):
         return gc.open_by_url(raw)
-    if re.fullmatch(r"[a-zA-Z0-9-_]{30,}", raw):
-        try:
-            return gc.open_by_key(raw)
-        except Exception:
-            pass
     return gc.open(raw)
+
+
+def _ensure_headers(ws, headers: list[str]) -> None:
+    values = ws.get_all_values()
+    if not values:
+        ws.append_row(headers)
+        return
+    current = [str(c).strip() for c in values[0]]
+    if current != headers:
+        ws.update("A1", [headers])
 
 
 def _open_ws(kind: str = "students"):
     g = _secrets().get("gsheets", {})
-    title = str(g.get("spreadsheet") or g.get("spreadsheet_id") or g.get("url") or "").strip()
     if kind == "messages":
         ws_name = str(g.get("messages_worksheet") or "messages").strip() or "messages"
         headers = MESSAGE_HEADERS
     else:
         ws_name = str(g.get("worksheet") or "students").strip() or "students"
         headers = HEADERS
-    gc = _client()
-    sh = _open_spreadsheet(gc, title)
+    sh = _open_spreadsheet(_client())
     try:
         ws = sh.worksheet(ws_name)
     except Exception:
         ws = sh.add_worksheet(title=ws_name, rows=2000, cols=max(16, len(headers)))
-    values = ws.get_all_values()
-    if not values:
-        ws.append_row(headers)
-    else:
-        current = [str(c).strip() for c in values[0]]
-        if current != headers:
-            ws.update("A1", [headers])
+    _ensure_headers(ws, headers)
     return ws
+
+
+def create_managed_spreadsheet(share_with: str = "") -> dict[str, str]:
+    global _CREATED_URL, _LAST_ERROR
+    gc = _client()
+    sh = gc.create("nour-al-sumude-students")
+    email = _service_email()
+    if email:
+        try:
+            sh.share(email, perm_type="user", role="writer")
+        except Exception:
+            pass
+    share_with = str(share_with or "").strip()
+    if share_with and "@" in share_with:
+        try:
+            sh.share(share_with, perm_type="user", role="writer")
+        except Exception:
+            pass
+    students = sh.sheet1
+    students.update_title("students")
+    _ensure_headers(students, HEADERS)
+    try:
+        messages = sh.add_worksheet(title="messages", rows=2000, cols=len(MESSAGE_HEADERS))
+    except Exception:
+        messages = students
+    _ensure_headers(messages, MESSAGE_HEADERS)
+    url = "https://docs.google.com/spreadsheets/d/" + str(sh.id) + "/edit"
+    _CREATED_URL = url
+    _LAST_ERROR = ""
+    return {"id": sh.id, "url": url}
 
 
 def _row_to_student(row: dict[str, Any]) -> dict[str, Any]:
@@ -157,8 +200,7 @@ def list_students() -> list[dict[str, Any]]:
     if not sheets_configured():
         return []
     try:
-        ws = _open_ws("students")
-        rows = ws.get_all_records(expected_headers=HEADERS)
+        rows = _open_ws("students").get_all_records(expected_headers=HEADERS)
         out = []
         for row in rows:
             item = _row_to_student(row)
@@ -199,7 +241,10 @@ def _upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
     grade_txt = ",".join(str(g).strip() for g in grades if str(g).strip())
     subjects = profile.get("subjects") or []
     if isinstance(subjects, list):
-        subjects_txt = ",".join(str(s) for s in subjects)
+        mapped = []
+        for s in subjects:
+            mapped.append({"phys": "فيزياء", "chem": "كيمياء", "physics": "فيزياء", "chemistry": "كيمياء"}.get(str(s), str(s)))
+        subjects_txt = "، ".join(mapped)
     else:
         subjects_txt = str(subjects)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
@@ -208,8 +253,8 @@ def _upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
         "name": name,
         "grade": grade_txt,
         "subjects": subjects_txt,
-        "xp": str(profile.get("xp", 0)),
-        "progress": str(profile.get("progress", 0)),
+        "xp": str(profile.get("xp", 0) or 0),
+        "progress": str(profile.get("progress", 0) or 0),
         "badges": str(profile.get("badges") or ""),
         "found": str(profile.get("found") or ""),
         "review": str(profile.get("review") or ""),
@@ -227,10 +272,16 @@ def _upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
             row_i = i
             if rid:
                 payload["id"] = rid
+            if not payload["xp"] or payload["xp"] == "0":
+                payload["xp"] = str(rec.get("xp") or 0)
+            if not payload["progress"] or payload["progress"] == "0":
+                payload["progress"] = str(rec.get("progress") or 0)
+            if not payload["badges"]:
+                payload["badges"] = str(rec.get("badges") or "")
             break
     values = [payload[h] for h in HEADERS]
     if row_i:
-        ws.update(f"A{row_i}:N{row_i}", [values])
+        ws.update("A" + str(row_i) + ":N" + str(row_i), [values])
     else:
         ws.append_row(values)
     return payload
@@ -240,8 +291,7 @@ def list_messages(status: str | None = None) -> list[dict[str, Any]]:
     if not sheets_configured():
         return []
     try:
-        ws = _open_ws("messages")
-        rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
+        rows = _open_ws("messages").get_all_records(expected_headers=MESSAGE_HEADERS)
         out = []
         for row in rows:
             item = {h: str(row.get(h) or "").strip() for h in MESSAGE_HEADERS}
@@ -260,27 +310,22 @@ def save_contact_message(data: dict[str, Any]) -> dict[str, Any]:
     if not sheets_configured():
         return dict(data)
     try:
-        return _save_contact_message(data)
+        ws = _open_ws("messages")
+        payload = {
+            "id": str(data.get("id") or ("msg-" + datetime.now(timezone.utc).strftime("%y%m%d%H%M%S"))),
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "name": str(data.get("name") or "").strip(),
+            "email": str(data.get("email") or "").strip(),
+            "institution": str(data.get("institution") or "").strip(),
+            "subject": str(data.get("subject") or "").strip(),
+            "message": str(data.get("message") or "").strip(),
+            "status": "new",
+        }
+        ws.append_row([payload[h] for h in MESSAGE_HEADERS])
+        return payload
     except Exception as exc:
         _set_error(exc)
         return dict(data)
-
-
-def _save_contact_message(data: dict[str, Any]) -> dict[str, Any]:
-    ws = _open_ws("messages")
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    payload = {
-        "id": str(data.get("id") or ("msg-" + datetime.now(timezone.utc).strftime("%y%m%d%H%M%S"))),
-        "created_at": now,
-        "name": str(data.get("name") or "").strip(),
-        "email": str(data.get("email") or "").strip(),
-        "institution": str(data.get("institution") or "").strip(),
-        "subject": str(data.get("subject") or "").strip(),
-        "message": str(data.get("message") or "").strip(),
-        "status": "new",
-    }
-    ws.append_row([payload[h] for h in MESSAGE_HEADERS])
-    return payload
 
 
 def update_message_status(msg_id: str, status: str) -> None:

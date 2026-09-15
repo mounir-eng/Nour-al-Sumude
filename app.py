@@ -3172,7 +3172,14 @@ def _render_onboarding():
                 if error:
                     st.session_state["_onboarding_error"]=error;st.rerun()
                 password_hash=hashlib.sha256(password.encode("utf-8")).hexdigest() if password else existing_hash
-                profile={"id":old.get("id") or "local-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
+                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":[grade],"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
+                try:
+                    from student_cloud_sync import upsert_student
+                    saved=upsert_student(profile)
+                    if isinstance(saved,dict) and saved.get("id"):
+                        profile["id"]=saved.get("id") or profile["id"]
+                except Exception:
+                    pass
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
     st.stop()
 
@@ -3238,6 +3245,16 @@ def _render_dashboard():
     }
     unit_progress = {"phys": physics_pct, "chem": chemistry_pct}
     display_xp = max(xp, done * 100 + 50 if done else 0)
+    try:
+        from student_cloud_sync import upsert_student
+        upsert_student({
+            **profile,
+            "xp": display_xp,
+            "progress": pct,
+            "badges": profile.get("badges") or "",
+        })
+    except Exception:
+        pass
     action = render_dashboard_v13(
         profile=profile,
         safe_name=safe_name,
