@@ -8,6 +8,7 @@ import streamlit as st
 
 from student_cloud_sync import (
     delete_message,
+    last_sheets_error,
     list_messages,
     list_students,
     sheets_configured,
@@ -106,7 +107,7 @@ def _home(students: list[dict[str, Any]]) -> None:
             _set_view("processed")
     st.markdown("### تقدم الطلبة")
     if not students:
-        st.info("لا يوجد طلبة مسجّلون بعد." if sheets_configured() else "لم يُضبط Google Sheets بعد.")
+        st.info("لا يوجد طلبة مسجّلون بعد." if sheets_configured() and not last_sheets_error() else "ستظهر بيانات الطلبة هنا بعد ربط الجدول.")
         return
     rows = []
     for s in students:
@@ -169,6 +170,11 @@ def render_admin_panel() -> None:
             st.session_state["admin_ok"] = False
             st.rerun()
     students = list_students() if sheets_configured() else []
+    err = last_sheets_error()
+    if not sheets_configured():
+        st.warning("لم يُضبط Google Sheets بعد. أضف [gsheets] و [gcp_service_account] في Secrets.")
+    elif err:
+        st.warning(err)
     if view == "messages":
         _messages("new")
     elif view == "processed":

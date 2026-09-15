@@ -1,8 +1,11 @@
 """Google Sheets sync for students and contact messages."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Any
+
+_LAST_ERROR = ""
 
 HEADERS = [
     "id", "name", "grade", "subjects", "xp", "progress", "badges",
@@ -26,9 +29,45 @@ def sheets_configured() -> bool:
     try:
         g = sec.get("gsheets", {})
         gcp = sec.get("gcp_service_account", {})
-        return bool(g.get("spreadsheet") and gcp.get("client_email") and gcp.get("private_key"))
+        return bool(
+            (g.get("spreadsheet") or g.get("spreadsheet_id") or g.get("url"))
+            and gcp.get("client_email")
+            and gcp.get("private_key")
+        )
     except Exception:
         return False
+
+
+def last_sheets_error() -> str:
+    return _LAST_ERROR
+
+
+def _service_email() -> str:
+    try:
+        return str(_secrets().get("gcp_service_account", {}).get("client_email") or "").strip()
+    except Exception:
+        return ""
+
+
+def _friendly_error(exc: Exception) -> str:
+    name = type(exc).__name__
+    email = _service_email()
+    share = (
+        f" شارك الجدول مع {email} بصلاحية محرر."
+        if email
+        else " شارك الجدول مع إيميل الحساب الخدمي بصلاحية محرر."
+    )
+    text = str(exc).lower()
+    if "SpreadsheetNotFound" in name or "not found" in text:
+        return "لم يتم العثور على جدول Google Sheets. تحقق من الاسم أو الرابط في Secrets." + share
+    if "APIError" in name or "403" in str(exc) or "permission" in text:
+        return "لا توجد صلاحية لفتح الجدول." + share
+    return "تعذر الاتصال بـ Google Sheets. تحقق من Secrets ومشاركة الجدول."
+
+
+def _set_error(exc: Exception | None = None, message: str = "") -> None:
+    global _LAST_ERROR
+    _LAST_ERROR = message or (_friendly_error(exc) if exc else "")
 
 
 def _sa_info() -> dict[str, Any]:
@@ -49,9 +88,26 @@ def _client():
     return gspread.authorize(creds)
 
 
+def _open_spreadsheet(gc, raw: str):
+    raw = (raw or "").strip().strip('"').strip("'")
+    if not raw:
+        raise ValueError("empty spreadsheet")
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", raw)
+    if match:
+        return gc.open_by_key(match.group(1))
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return gc.open_by_url(raw)
+    if re.fullmatch(r"[a-zA-Z0-9-_]{30,}", raw):
+        try:
+            return gc.open_by_key(raw)
+        except Exception:
+            pass
+    return gc.open(raw)
+
+
 def _open_ws(kind: str = "students"):
     g = _secrets().get("gsheets", {})
-    title = str(g.get("spreadsheet") or "").strip()
+    title = str(g.get("spreadsheet") or g.get("spreadsheet_id") or g.get("url") or "").strip()
     if kind == "messages":
         ws_name = str(g.get("messages_worksheet") or "messages").strip() or "messages"
         headers = MESSAGE_HEADERS
@@ -59,7 +115,7 @@ def _open_ws(kind: str = "students"):
         ws_name = str(g.get("worksheet") or "students").strip() or "students"
         headers = HEADERS
     gc = _client()
-    sh = gc.open(title)
+    sh = _open_spreadsheet(gc, title)
     try:
         ws = sh.worksheet(ws_name)
     except Exception:
@@ -97,16 +153,21 @@ def _row_to_student(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_students() -> list[dict[str, Any]]:
+    _set_error(message="")
     if not sheets_configured():
         return []
-    ws = _open_ws("students")
-    rows = ws.get_all_records(expected_headers=HEADERS)
-    out = []
-    for row in rows:
-        item = _row_to_student(row)
-        if item["id"] or item["name"]:
-            out.append(item)
-    return out
+    try:
+        ws = _open_ws("students")
+        rows = ws.get_all_records(expected_headers=HEADERS)
+        out = []
+        for row in rows:
+            item = _row_to_student(row)
+            if item["id"] or item["name"]:
+                out.append(item)
+        return out
+    except Exception as exc:
+        _set_error(exc)
+        return []
 
 
 def find_student_by_name(name: str) -> dict[str, Any] | None:
@@ -122,6 +183,14 @@ def find_student_by_name(name: str) -> dict[str, Any] | None:
 def upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
     if not sheets_configured():
         return dict(profile)
+    try:
+        return _upsert_student(profile)
+    except Exception as exc:
+        _set_error(exc)
+        return dict(profile)
+
+
+def _upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
     ws = _open_ws("students")
     records = ws.get_all_records(expected_headers=HEADERS)
     sid = str(profile.get("id") or "").strip()
@@ -170,22 +239,34 @@ def upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
 def list_messages(status: str | None = None) -> list[dict[str, Any]]:
     if not sheets_configured():
         return []
-    ws = _open_ws("messages")
-    rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
-    out = []
-    for row in rows:
-        item = {h: str(row.get(h) or "").strip() for h in MESSAGE_HEADERS}
-        if not item["id"] and not item["message"]:
-            continue
-        if status and item.get("status") != status:
-            continue
-        out.append(item)
-    return out
+    try:
+        ws = _open_ws("messages")
+        rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
+        out = []
+        for row in rows:
+            item = {h: str(row.get(h) or "").strip() for h in MESSAGE_HEADERS}
+            if not item["id"] and not item["message"]:
+                continue
+            if status and item.get("status") != status:
+                continue
+            out.append(item)
+        return out
+    except Exception as exc:
+        _set_error(exc)
+        return []
 
 
 def save_contact_message(data: dict[str, Any]) -> dict[str, Any]:
     if not sheets_configured():
         return dict(data)
+    try:
+        return _save_contact_message(data)
+    except Exception as exc:
+        _set_error(exc)
+        return dict(data)
+
+
+def _save_contact_message(data: dict[str, Any]) -> dict[str, Any]:
     ws = _open_ws("messages")
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     payload = {
@@ -205,20 +286,26 @@ def save_contact_message(data: dict[str, Any]) -> dict[str, Any]:
 def update_message_status(msg_id: str, status: str) -> None:
     if not sheets_configured() or not msg_id:
         return
-    ws = _open_ws("messages")
-    rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
-    for i, rec in enumerate(rows, start=2):
-        if str(rec.get("id") or "").strip() == str(msg_id):
-            ws.update_cell(i, MESSAGE_HEADERS.index("status") + 1, status)
-            return
+    try:
+        ws = _open_ws("messages")
+        rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
+        for i, rec in enumerate(rows, start=2):
+            if str(rec.get("id") or "").strip() == str(msg_id):
+                ws.update_cell(i, MESSAGE_HEADERS.index("status") + 1, status)
+                return
+    except Exception as exc:
+        _set_error(exc)
 
 
 def delete_message(msg_id: str) -> None:
     if not sheets_configured() or not msg_id:
         return
-    ws = _open_ws("messages")
-    rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
-    for i, rec in enumerate(rows, start=2):
-        if str(rec.get("id") or "").strip() == str(msg_id):
-            ws.delete_rows(i)
-            return
+    try:
+        ws = _open_ws("messages")
+        rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
+        for i, rec in enumerate(rows, start=2):
+            if str(rec.get("id") or "").strip() == str(msg_id):
+                ws.delete_rows(i)
+                return
+    except Exception as exc:
+        _set_error(exc)
