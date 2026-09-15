@@ -4,239 +4,221 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-import streamlit as st
-
 HEADERS = [
-    "id",
-    "name",
-    "grade",
-    "subjects",
-    "xp",
-    "progress",
-    "badges",
-    "found",
-    "review",
-    "book",
-    "extra",
-    "last_seen",
-    "teacher_id",
-    "password_hash",
+    "id", "name", "grade", "subjects", "xp", "progress", "badges",
+    "found", "review", "book", "extra", "last_seen", "teacher_id", "password_hash",
 ]
 MESSAGE_HEADERS = [
-    "id",
-    "created_at",
-    "name",
-    "email",
-    "institution",
-    "subject",
-    "message",
-    "status",
+    "id", "created_at", "name", "email", "institution", "subject", "message", "status",
 ]
 
-_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-
-def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def is_configured() -> bool:
+def _secrets():
     try:
-        gsheets = st.secrets.get("gsheets", {})
-        sa = st.secrets.get("gcp_service_account", {})
-        return bool(gsheets.get("spreadsheet") and sa.get("client_email") and sa.get("private_key"))
+        import streamlit as st
+        return st.secrets
+    except Exception:
+        return {}
+
+
+def sheets_configured() -> bool:
+    sec = _secrets()
+    try:
+        g = sec.get("gsheets", {})
+        gcp = sec.get("gcp_service_account", {})
+        return bool(g.get("spreadsheet") and gcp.get("client_email") and gcp.get("private_key"))
     except Exception:
         return False
+
+
+def _sa_info() -> dict[str, Any]:
+    gcp = dict(_secrets().get("gcp_service_account", {}))
+    key = str(gcp.get("private_key") or "")
+    gcp["private_key"] = key.replace("\\n", "\n")
+    return gcp
 
 
 def _client():
     import gspread
     from google.oauth2.service_account import Credentials
-
-    sa = dict(st.secrets["gcp_service_account"])
-    key = str(sa.get("private_key") or "")
-    sa["private_key"] = key.replace(chr(92) + "n", "\n")
-    creds = Credentials.from_service_account_info(sa, scopes=_SCOPES)
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    creds = Credentials.from_service_account_info(_sa_info(), scopes=scopes)
     return gspread.authorize(creds)
 
 
-def open_worksheet(kind: str = "students"):
-    if not is_configured():
-        return None
-    gsheets = st.secrets["gsheets"]
-    spreadsheet = str(gsheets.get("spreadsheet") or "").strip()
+def _open_ws(kind: str = "students"):
+    g = _secrets().get("gsheets", {})
+    title = str(g.get("spreadsheet") or "").strip()
     if kind == "messages":
-        title = str(gsheets.get("messages_worksheet") or "messages").strip() or "messages"
+        ws_name = str(g.get("messages_worksheet") or "messages").strip() or "messages"
         headers = MESSAGE_HEADERS
     else:
-        title = str(gsheets.get("worksheet") or "students").strip() or "students"
+        ws_name = str(g.get("worksheet") or "students").strip() or "students"
         headers = HEADERS
     gc = _client()
-    sh = gc.open(spreadsheet) if not spreadsheet.startswith("http") else gc.open_by_url(spreadsheet)
+    sh = gc.open(title)
     try:
-        ws = sh.worksheet(title)
+        ws = sh.worksheet(ws_name)
     except Exception:
-        ws = sh.add_worksheet(title=title, rows=2000, cols=max(16, len(headers)))
-        ws.update("A1", [headers])
-        return ws
+        ws = sh.add_worksheet(title=ws_name, rows=2000, cols=max(16, len(headers)))
     values = ws.get_all_values()
     if not values:
-        ws.update("A1", [headers])
+        ws.append_row(headers)
+    else:
+        current = [str(c).strip() for c in values[0]]
+        if current != headers:
+            ws.update("A1", [headers])
     return ws
 
 
-def _row_dict(headers: list[str], row: list[str]) -> dict[str, str]:
-    out = {}
-    for i, key in enumerate(headers):
-        out[key] = row[i].strip() if i < len(row) else ""
-    return out
+def _row_to_student(row: dict[str, Any]) -> dict[str, Any]:
+    grade_raw = str(row.get("grade") or "").strip()
+    grades = [g.strip() for g in grade_raw.replace(";", ",").split(",") if g.strip()]
+    return {
+        "id": str(row.get("id") or "").strip(),
+        "name": str(row.get("name") or "").strip(),
+        "grade": grade_raw,
+        "grades": grades,
+        "subjects": str(row.get("subjects") or "").strip(),
+        "xp": str(row.get("xp") or "0").strip() or "0",
+        "progress": str(row.get("progress") or "0").strip() or "0",
+        "badges": str(row.get("badges") or "").strip(),
+        "found": str(row.get("found") or "").strip(),
+        "review": str(row.get("review") or "").strip(),
+        "book": str(row.get("book") or "").strip(),
+        "extra": str(row.get("extra") or "").strip(),
+        "last_seen": str(row.get("last_seen") or "").strip(),
+        "teacher_id": str(row.get("teacher_id") or "").strip(),
+        "password_hash": str(row.get("password_hash") or "").strip(),
+    }
 
 
-def list_students(*, include_secrets: bool = False) -> list[dict[str, Any]]:
-    ws = open_worksheet("students")
-    if ws is None:
+def list_students() -> list[dict[str, Any]]:
+    if not sheets_configured():
         return []
-    rows = ws.get_all_values()
-    if not rows:
-        return []
-    headers = [c.strip() or HEADERS[i] if i < len(HEADERS) else c.strip() for i, c in enumerate(rows[0])]
+    ws = _open_ws("students")
+    rows = ws.get_all_records(expected_headers=HEADERS)
     out = []
-    for row in rows[1:]:
-        if not any(cell.strip() for cell in row):
-            continue
-        item = _row_dict(headers if headers else HEADERS, row)
-        if not include_secrets:
-            item.pop("password_hash", None)
-        out.append(item)
+    for row in rows:
+        item = _row_to_student(row)
+        if item["id"] or item["name"]:
+            out.append(item)
     return out
 
 
 def find_student_by_name(name: str) -> dict[str, Any] | None:
-    needle = (name or "").strip().casefold()
-    if not needle:
+    target = str(name or "").strip()
+    if not target:
         return None
-    for row in list_students(include_secrets=True):
-        if str(row.get("name") or "").strip().casefold() == needle:
+    for row in list_students():
+        if str(row.get("name") or "").strip() == target:
             return row
     return None
 
 
-def upsert_student(profile: dict[str, Any], stats: dict[str, Any] | None = None) -> dict[str, Any]:
-    ws = open_worksheet("students")
-    if ws is None:
-        return {"ok": False, "error": "sheets_not_configured"}
-    stats = stats or {}
+def upsert_student(profile: dict[str, Any]) -> dict[str, Any]:
+    if not sheets_configured():
+        return dict(profile)
+    ws = _open_ws("students")
+    records = ws.get_all_records(expected_headers=HEADERS)
     sid = str(profile.get("id") or "").strip()
     name = str(profile.get("name") or "").strip()
-    grades = profile.get("grades") or [profile.get("grade")]
-    grade_s = ",".join(str(int(g)) for g in grades if str(g).strip())
+    grades = profile.get("grades") or [profile.get("grade", "")]
+    grade_txt = ",".join(str(g).strip() for g in grades if str(g).strip())
     subjects = profile.get("subjects") or []
     if isinstance(subjects, list):
-        subjects_s = ",".join(str(s) for s in subjects)
+        subjects_txt = ",".join(str(s) for s in subjects)
     else:
-        subjects_s = str(subjects)
-    values = {
-        "id": sid,
+        subjects_txt = str(subjects)
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+    payload = {
+        "id": sid or ("stu-" + datetime.now(timezone.utc).strftime("%y%m%d%H%M%S")),
         "name": name,
-        "grade": grade_s,
-        "subjects": subjects_s,
-        "xp": str(stats.get("xp", profile.get("xp", 0) or 0)),
-        "progress": str(stats.get("progress", profile.get("progress", 0) or 0)),
-        "badges": str(stats.get("badges", profile.get("badges", "") or "")),
-        "found": str(stats.get("found", 0) or 0),
-        "review": str(stats.get("review", 0) or 0),
-        "book": str(stats.get("book", 0) or 0),
-        "extra": str(stats.get("extra", 0) or 0),
-        "last_seen": _now(),
+        "grade": grade_txt,
+        "subjects": subjects_txt,
+        "xp": str(profile.get("xp", 0)),
+        "progress": str(profile.get("progress", 0)),
+        "badges": str(profile.get("badges") or ""),
+        "found": str(profile.get("found") or ""),
+        "review": str(profile.get("review") or ""),
+        "book": str(profile.get("book") or ""),
+        "extra": str(profile.get("extra") or ""),
+        "last_seen": now,
         "teacher_id": str(profile.get("teacher_id") or ""),
         "password_hash": str(profile.get("passwordHash") or profile.get("password_hash") or ""),
     }
-    rows = ws.get_all_values()
-    headers = HEADERS
-    if rows:
-        headers = [c.strip() or HEADERS[i] if i < len(HEADERS) else c.strip() for i, c in enumerate(rows[0])]
-        if not any(headers):
-            headers = HEADERS
-    payload = [values.get(h, "") for h in headers]
-    match_row = None
-    for i, row in enumerate(rows[1:], start=2):
-        rid = row[0].strip() if row else ""
-        rname = row[1].strip() if len(row) > 1 else ""
-        if (sid and rid == sid) or (name and rname.casefold() == name.casefold()):
-            match_row = i
+    row_i = None
+    for i, rec in enumerate(records, start=2):
+        rid = str(rec.get("id") or "").strip()
+        rname = str(rec.get("name") or "").strip()
+        if (sid and rid == sid) or (not sid and rname == name):
+            row_i = i
+            if rid:
+                payload["id"] = rid
             break
-    if match_row:
-        ws.update(f"A{match_row}", [payload])
+    values = [payload[h] for h in HEADERS]
+    if row_i:
+        ws.update(f"A{row_i}:N{row_i}", [values])
     else:
-        ws.append_row(payload, value_input_option="USER_ENTERED")
-    return {"ok": True}
+        ws.append_row(values)
+    return payload
 
 
-def save_contact_message(
-    *,
-    name: str,
-    email: str,
-    institution: str,
-    subject: str,
-    message: str,
-    msg_id: str,
-) -> dict[str, Any]:
-    ws = open_worksheet("messages")
-    if ws is None:
-        return {"ok": False, "error": "sheets_not_configured"}
-    ws.append_row(
-        [msg_id, _now(), name, email, institution, subject, message, "new"],
-        value_input_option="USER_ENTERED",
-    )
-    return {"ok": True}
-
-
-def list_contact_messages() -> list[dict[str, str]]:
-    ws = open_worksheet("messages")
-    if ws is None:
+def list_messages(status: str | None = None) -> list[dict[str, Any]]:
+    if not sheets_configured():
         return []
-    rows = ws.get_all_values()
-    if not rows:
-        return []
-    headers = [c.strip() or MESSAGE_HEADERS[i] if i < len(MESSAGE_HEADERS) else c.strip() for i, c in enumerate(rows[0])]
+    ws = _open_ws("messages")
+    rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
     out = []
-    for row in rows[1:]:
-        if not any(cell.strip() for cell in row):
+    for row in rows:
+        item = {h: str(row.get(h) or "").strip() for h in MESSAGE_HEADERS}
+        if not item["id"] and not item["message"]:
             continue
-        item = _row_dict(headers if headers else MESSAGE_HEADERS, row)
-        item["status"] = (item.get("status") or "new").strip() or "new"
+        if status and item.get("status") != status:
+            continue
         out.append(item)
-    out.reverse()
     return out
 
 
-def _find_message_row(ws, msg_id: str) -> int | None:
-    rows = ws.get_all_values()
-    for i, row in enumerate(rows[1:], start=2):
-        if row and row[0].strip() == msg_id:
-            return i
-    return None
+def save_contact_message(data: dict[str, Any]) -> dict[str, Any]:
+    if not sheets_configured():
+        return dict(data)
+    ws = _open_ws("messages")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    payload = {
+        "id": str(data.get("id") or ("msg-" + datetime.now(timezone.utc).strftime("%y%m%d%H%M%S"))),
+        "created_at": now,
+        "name": str(data.get("name") or "").strip(),
+        "email": str(data.get("email") or "").strip(),
+        "institution": str(data.get("institution") or "").strip(),
+        "subject": str(data.get("subject") or "").strip(),
+        "message": str(data.get("message") or "").strip(),
+        "status": "new",
+    }
+    ws.append_row([payload[h] for h in MESSAGE_HEADERS])
+    return payload
 
 
-def update_message_status(msg_id: str, status: str) -> bool:
-    ws = open_worksheet("messages")
-    if ws is None:
-        return False
-    idx = _find_message_row(ws, msg_id)
-    if not idx:
-        return False
-    headers = [c.strip() for c in (ws.row_values(1) or MESSAGE_HEADERS)]
-    col = headers.index("status") + 1 if "status" in headers else len(MESSAGE_HEADERS)
-    ws.update_cell(idx, col, status)
-    return True
+def update_message_status(msg_id: str, status: str) -> None:
+    if not sheets_configured() or not msg_id:
+        return
+    ws = _open_ws("messages")
+    rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
+    for i, rec in enumerate(rows, start=2):
+        if str(rec.get("id") or "").strip() == str(msg_id):
+            ws.update_cell(i, MESSAGE_HEADERS.index("status") + 1, status)
+            return
 
 
-def delete_message(msg_id: str) -> bool:
-    ws = open_worksheet("messages")
-    if ws is None:
-        return False
-    idx = _find_message_row(ws, msg_id)
-    if not idx:
-        return False
-    ws.delete_rows(idx)
-    return True
+def delete_message(msg_id: str) -> None:
+    if not sheets_configured() or not msg_id:
+        return
+    ws = _open_ws("messages")
+    rows = ws.get_all_records(expected_headers=MESSAGE_HEADERS)
+    for i, rec in enumerate(rows, start=2):
+        if str(rec.get("id") or "").strip() == str(msg_id):
+            ws.delete_rows(i)
+            return

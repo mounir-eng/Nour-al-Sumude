@@ -1,228 +1,178 @@
-"""Admin dashboard: student stats plus contact inbox with process/delete."""
+"""Hidden admin dashboard at ?admin=1"""
 from __future__ import annotations
 
-import html
+import hashlib
 from typing import Any
 
 import streamlit as st
 
-import student_cloud_sync as sync
+from student_cloud_sync import (
+    delete_message,
+    list_messages,
+    list_students,
+    sheets_configured,
+    update_message_status,
+)
 
-GRADE_LABELS = {
-    6: "السادس",
-    7: "السابع",
-    8: "الثامن",
-    9: "التاسع",
-    10: "العاشر",
-    11: "الحادي عشر",
-    12: "الثاني عشر",
-}
-
-_CSS = r"""
+CSS = """
 <style id="samed-admin-ui-v5">
-:root{--ink:#173b3d;--muted:#6f827e;--line:#dce6e3;--teal:#245e65;--paper:#fff;--bg:#f4f8f7;--gold:#f1bf50;--danger:#b42318}
-html,body,.stApp,[data-testid="stAppViewContainer"]{direction:rtl!important;text-align:right!important;background:var(--bg)!important;color:var(--ink)!important;font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important}
-[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"],footer{display:none!important}
-section[data-testid="stMain"] .block-container{max-width:1100px!important;padding:16px 18px 40px!important}
-.admin-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin-bottom:14px}
-.admin-brand{display:flex;align-items:center;gap:10px}
-.admin-mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#173f44,#347d78);font-size:20px}
-.admin-brand b{display:block;font-size:16px}.admin-brand small{display:block;color:var(--muted);font-size:11px}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 16px}
-.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center}
-.kpi b{display:block;font-size:26px;color:#173f44}.kpi small{color:var(--muted);font-size:12px;font-weight:700}
-.msg-card,.stu-row{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
-.msg-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.msg-top b{font-size:15px}.msg-top small{color:var(--muted)}
-.msg-body{white-space:pre-wrap;line-height:1.8;margin:8px 0;color:#244}
-.page-title{margin:0 0 6px;font-size:22px}.page-sub{color:var(--muted);margin:0 0 16px;font-size:13px}
-.empty{background:#fff;border:1px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
-.stButton>button{border-radius:12px!important;min-height:42px!important;font-weight:800!important}
-.st-key-admin_open_messages button,.st-key-admin_open_processed button{min-height:88px!important;background:#fff!important;border:1px solid var(--line)!important;color:#173b3d!important}
-.banner{background:#fff8e8;border:1px solid #eedcae;color:#735b20;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:13px}
-@media(max-width:800px){.kpis{grid-template-columns:1fr 1fr}}
+[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stDecoration"],footer,
+section[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"]{display:none!important}
+.stApp,[data-testid="stAppViewContainer"]{background:#f4f8f7!important;direction:rtl!important}
+section[data-testid="stMain"] .block-container{max-width:1120px!important;padding:18px 18px 40px!important}
+.admin-hero{background:linear-gradient(135deg,#173f44,#245e65);color:#fff;border-radius:24px;padding:22px 24px;margin-bottom:16px}
+.admin-hero h1{margin:0;font-size:26px}.admin-hero p{margin:6px 0 0;opacity:.86;font-size:14px}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0 18px}
+.kpi{background:#fff;border:1px solid #dce8e5;border-radius:18px;padding:16px}
+.kpi b{display:block;font-size:28px;color:#173f44}.kpi small{color:#6f827e;font-weight:700}
+.icon-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:8px 0 20px}
+.icon-card{background:#fff;border:1px solid #dce8e5;border-radius:20px;padding:18px;text-align:center}
+.icon-card .mark{width:52px;height:52px;border-radius:16px;background:#eef8f4;margin:0 auto 8px;display:grid;place-items:center;font-size:22px}
+.icon-card b{display:block;color:#173f44}.icon-card small{color:#6f827e}
+.msg{background:#fff;border:1px solid #dce8e5;border-radius:18px;padding:16px;margin-bottom:12px}
+.msg h4{margin:0 0 6px;color:#173f44}.msg p{margin:0;color:#35595c;line-height:1.7}
+.badge{display:inline-block;background:#eef8f4;color:#245e65;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800}
+@media(max-width:800px){.kpi-row,.icon-row{grid-template-columns:1fr 1fr}}
 </style>
 """
 
 
-def _esc(value: Any) -> str:
-    return html.escape(str(value or ""), quote=True)
-
-
-def _grade_label(raw: str) -> str:
-    parts = []
-    for bit in str(raw or "").replace("|", ",").split(","):
-        bit = bit.strip()
-        if not bit:
-            continue
-        try:
-            g = int(bit)
-        except Exception:
-            parts.append(bit)
-            continue
-        parts.append("الصف " + GRADE_LABELS.get(g, str(g)))
-    return " · ".join(parts) or "—"
-
-
-def _num(value: Any) -> float:
+def _admin_password() -> str:
     try:
-        return float(str(value).replace("%", "").strip() or 0)
+        return str(st.secrets.get("admin", {}).get("password") or "").strip()
     except Exception:
-        return 0.0
+        return ""
 
 
-def _demo_students() -> list[dict[str, Any]]:
-    return [
-        {"id": "demo-1", "name": "أحمد خالد", "grade": "12", "subjects": "phys,chem", "xp": "240", "progress": "68", "badges": "3", "last_seen": "—"},
-        {"id": "demo-2", "name": "سارة علي", "grade": "11,12", "subjects": "phys", "xp": "120", "progress": "41", "badges": "1", "last_seen": "—"},
-        {"id": "demo-3", "name": "يوسف منير", "grade": "6,7", "subjects": "chem", "xp": "80", "progress": "22", "badges": "0", "last_seen": "—"},
-    ]
-
-
-def _students() -> tuple[list[dict[str, Any]], bool]:
-    if sync.is_configured():
-        try:
-            return sync.list_students(), True
-        except Exception:
-            return _demo_students(), False
-    return _demo_students(), False
+def _hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _login() -> bool:
-    if st.session_state.get("samed_admin_ok"):
-        return True
-    st.markdown(_CSS, unsafe_allow_html=True)
-    st.markdown(
-        '<div class="admin-nav"><div class="admin-brand"><span class="admin-mark">🛡️</span>'
-        "<span><b>لوحة الإدارة</b><small>دخول محمي</small></span></div></div>",
-        unsafe_allow_html=True,
-    )
-    expected = ""
-    try:
-        expected = str((st.secrets.get("admin") or {}).get("password") or "").strip()
-    except Exception:
-        expected = ""
+    expected = _admin_password()
     if not expected:
         st.warning("أضف كلمة مرور الأدمن في Streamlit Cloud عبر Settings → Secrets ثم أعد تشغيل التطبيق.")
+        st.code('[admin]\npassword = "••••••••"', language="toml")
         return False
-    pwd = st.text_input("كلمة مرور الأدمن", type="password", key="admin_password_input")
-    if st.button("دخول", type="primary", use_container_width=True, key="admin_login_btn"):
-        if pwd == expected:
-            st.session_state["samed_admin_ok"] = True
+    if st.session_state.get("admin_ok"):
+        return True
+    st.markdown(CSS, unsafe_allow_html=True)
+    st.markdown('<div class="admin-hero"><h1>لوحة الإدارة</h1><p>أدخل كلمة المرور للمتابعة.</p></div>', unsafe_allow_html=True)
+    pwd = st.text_input("كلمة مرور الأدمن", type="password", key="admin_pwd")
+    if st.button("دخول", type="primary", use_container_width=True):
+        if pwd and (_hash(pwd) == _hash(expected) or pwd == expected):
+            st.session_state["admin_ok"] = True
             st.rerun()
         st.error("كلمة المرور غير صحيحة.")
     return False
 
 
-def _nav(title: str, subtitle: str) -> None:
-    st.markdown(
-        '<div class="admin-nav"><div class="admin-brand"><span class="admin-mark">🛡️</span>'
-        f"<span><b>الطالب الصامد</b><small>{_esc(subtitle)}</small></span></div></div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(f'<h1 class="page-title">{_esc(title)}</h1>', unsafe_allow_html=True)
+def _set_view(view: str) -> None:
+    st.session_state["admin_view"] = view
+    st.rerun()
 
 
-def _render_home() -> None:
-    students, live = _students()
+def _kpis(students: list[dict[str, Any]]) -> None:
     n = len(students)
-    avg = int(round(sum(_num(s.get("progress")) for s in students) / n)) if n else 0
-    badges = int(sum(_num(s.get("badges")) for s in students))
     grades = set()
     for s in students:
-        for bit in str(s.get("grade") or "").split(","):
-            if bit.strip():
-                grades.add(bit.strip())
-    if not live:
-        st.markdown('<div class="banner">لم يُضبط Google Sheets بعد، لذلك تُعرض بيانات تجريبية.</div>', unsafe_allow_html=True)
+        for g in str(s.get("grade") or "").replace(";", ",").split(","):
+            if g.strip():
+                grades.add(g.strip())
+    xp = 0
+    for s in students:
+        try:
+            xp += int(float(str(s.get("xp") or 0)))
+        except Exception:
+            pass
+    inbox = len(list_messages("new")) if sheets_configured() else 0
     st.markdown(
-        '<div class="kpis">'
-        f'<div class="kpi"><b>{n}</b><small>طالب مسجّل</small></div>'
-        f'<div class="kpi"><b>{len(grades)}</b><small>صفوف نشطة</small></div>'
-        f'<div class="kpi"><b>{avg}%</b><small>متوسط التقدم</small></div>'
-        f'<div class="kpi"><b>{badges}</b><small>أوسمة</small></div></div>',
+        f'<div class="kpi-row"><div class="kpi"><small>الطلبة</small><b>{n}</b></div>'
+        f'<div class="kpi"><small>الصفوف</small><b>{len(grades)}</b></div>'
+        f'<div class="kpi"><small>النقاط</small><b>{xp}</b></div>'
+        f'<div class="kpi"><small>رسائل جديدة</small><b>{inbox}</b></div></div>',
         unsafe_allow_html=True,
     )
+
+
+def _home(students: list[dict[str, Any]]) -> None:
+    _kpis(students)
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("📬 الرسائل", key="admin_open_messages", use_container_width=True):
-            st.session_state["admin_view"] = "messages"
-            st.rerun()
+        if st.button("✉️ رسائل التواصل", key="admin_open_messages", use_container_width=True):
+            _set_view("messages")
     with c2:
-        if st.button("✅ الرسائل المعالجة", key="admin_open_processed", use_container_width=True):
-            st.session_state["admin_view"] = "processed"
-            st.rerun()
-    st.markdown('<p class="page-sub">تقدم الطلبة</p>', unsafe_allow_html=True)
+        if st.button("✓ الرسائل المعالجة", key="admin_open_processed", use_container_width=True):
+            _set_view("processed")
+    st.markdown("### تقدم الطلبة")
     if not students:
-        st.markdown('<div class="empty">لا يوجد طلبة مسجّلون بعد.</div>', unsafe_allow_html=True)
+        st.info("لا يوجد طلبة مسجّلون بعد." if sheets_configured() else "لم يُضبط Google Sheets بعد.")
         return
-    for s in students:
-        subjects = str(s.get("subjects") or "").replace("phys", "فيزياء").replace("chem", "كيمياء")
-        st.markdown(
-            f'<div class="stu-row"><div class="msg-top"><b>{_esc(s.get("name") or "طالب")}</b>'
-            f'<small>{_esc(_grade_label(s.get("grade") or ""))}</small></div>'
-            f'<small>المواد: {_esc(subjects or "—")} · التقدم: {_esc(s.get("progress") or 0)}% · '
-            f'أوسمة: {_esc(s.get("badges") or 0)} · نقاط: {_esc(s.get("xp") or 0)}</small></div>',
-            unsafe_allow_html=True,
-        )
-
-
-def _render_messages(*, processed: bool) -> None:
-    title = "الرسائل المعالجة" if processed else "رسائل التواصل"
-    _nav(title, "لوحة الإدارة")
-    if st.button("← رجوع", key="admin_back_" + ("processed" if processed else "messages")):
-        st.session_state["admin_view"] = "home"
-        st.rerun()
     rows = []
-    if sync.is_configured():
-        try:
-            rows = [m for m in sync.list_contact_messages() if ((m.get("status") or "new") == "processed") is processed]
-        except Exception:
-            st.error("تعذّر قراءة الرسائل من Google Sheets.")
-            return
-    else:
-        st.markdown('<div class="banner">لم يُضبط Google Sheets بعد، لذلك لا تظهر رسائل حقيقية.</div>', unsafe_allow_html=True)
-    if not rows:
-        st.markdown('<div class="empty">لا توجد رسائل هنا حاليًا.</div>', unsafe_allow_html=True)
+    for s in students:
+        rows.append({
+            "الاسم": s.get("name"),
+            "الصف": s.get("grade"),
+            "المواد": s.get("subjects"),
+            "التقدم": s.get("progress"),
+            "النقاط": s.get("xp"),
+            "الأوسمة": s.get("badges"),
+            "آخر ظهور": s.get("last_seen"),
+        })
+    st.dataframe(rows, use_container_width=True, hide_index=True)
+
+
+def _messages(status: str) -> None:
+    title = "رسائل التواصل" if status == "new" else "الرسائل المعالجة"
+    st.markdown(f"### {title}")
+    if st.button("← العودة", key=f"admin_back_{status}"):
+        _set_view("home")
+    msgs = list_messages(status) if sheets_configured() else []
+    if not msgs:
+        st.info("لا توجد رسائل في هذه الصفحة.")
         return
-    for msg in rows:
-        mid = str(msg.get("id") or "")
+    for msg in msgs:
+        mid = msg.get("id") or ""
         st.markdown(
-            f'<div class="msg-card"><div class="msg-top"><div><b>{_esc(msg.get("name") or "بدون اسم")}</b>'
-            f'<br><small>{_esc(msg.get("subject") or "بدون موضوع")} · {_esc(msg.get("created_at") or "")}</small></div>'
-            f'<small>{_esc(msg.get("email") or "")}</small></div>'
-            f'<div class="msg-body">{_esc(msg.get("message") or "")}</div>'
-            f'<small>المؤسسة: {_esc(msg.get("institution") or "—")}</small></div>',
+            f'<div class="msg"><span class="badge">{msg.get("subject") or "رسالة"}</span>'
+            f'<h4>{msg.get("name") or "بدون اسم"}</h4>'
+            f'<p>{msg.get("message") or ""}</p>'
+            f'<small>{msg.get("created_at") or ""} · {msg.get("email") or ""} · {msg.get("institution") or ""}</small></div>',
             unsafe_allow_html=True,
         )
-        cols = st.columns(2 if not processed else 1)
-        if not processed:
+        cols = st.columns(2)
+        if status == "new":
             with cols[0]:
                 if st.button("تمت المعالجة", key=f"admin_done_{mid}", use_container_width=True):
-                    sync.update_message_status(mid, "processed")
+                    update_message_status(mid, "processed")
                     st.rerun()
             with cols[1]:
-                if st.button("حذف الرسالة", key=f"admin_del_{mid}", use_container_width=True):
-                    sync.delete_message(mid)
+                if st.button("حذف", key=f"admin_del_{mid}", use_container_width=True):
+                    delete_message(mid)
                     st.rerun()
         else:
-            with cols[0]:
-                if st.button("حذف الرسالة", key=f"admin_delp_{mid}", use_container_width=True):
-                    sync.delete_message(mid)
-                    st.rerun()
+            if st.button("حذف", key=f"admin_delp_{mid}", use_container_width=True):
+                delete_message(mid)
+                st.rerun()
 
 
 def render_admin_panel() -> None:
-    if "admin_view" not in st.session_state:
-        st.session_state["admin_view"] = "home"
+    st.markdown(CSS, unsafe_allow_html=True)
     if not _login():
         st.stop()
-    st.markdown(_CSS, unsafe_allow_html=True)
     view = st.session_state.get("admin_view") or "home"
+    top1, top2 = st.columns([4, 1])
+    with top1:
+        st.markdown('<div class="admin-hero"><h1>لوحة الإدارة</h1><p>إحصائيات الطلبة والرسائل — للأدمن فقط.</p></div>', unsafe_allow_html=True)
+    with top2:
+        if st.button("خروج", key="admin_logout"):
+            st.session_state["admin_ok"] = False
+            st.rerun()
+    students = list_students() if sheets_configured() else []
     if view == "messages":
-        _render_messages(processed=False)
+        _messages("new")
     elif view == "processed":
-        _render_messages(processed=True)
+        _messages("processed")
     else:
-        _nav("لوحة الإدارة", "إحصائيات الطلبة والرسائل")
-        _render_home()
+        _home(students)
+    st.stop()

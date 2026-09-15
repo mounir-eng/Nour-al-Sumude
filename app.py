@@ -29,6 +29,20 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+def _is_admin_request():
+    try:
+        val = st.query_params.get("admin", "")
+        if isinstance(val, list):
+            val = val[0] if val else ""
+        return str(val).strip().lower() in {"1", "true", "yes"}
+    except Exception:
+        return False
+
+if _is_admin_request():
+    from admin_panel import render_admin_panel
+    render_admin_panel()
+    st.stop()
+
 # طبقة v18 تُحمّل مبكرًا كي لا تبقى الصفحة على التصميم القديم.
 apply_exercise_ui_v18()
 
@@ -1527,7 +1541,7 @@ questions_db = [
     },
     {
         "id": "q6", "type": "interactive",
-        "title": "السؤال السادس: قراءة العلاقة البيانية بين الزخم والزمن",
+        "title": "السؤال السادس: قراءة العل��قة البيانية بين الزخم والزمن",
         "text": "الشكل المرفق يمثل العلاقة بين الزخم الخطي p والزمن t لكرة كتلتها (2 kg). من الرسم: عند t = 0 s تكون p = 10 kg.m/s، وعند t = 5 s تكون p = 40 kg.m/s (علاقة خطية). أوجد: 1) السرعة الابتدائية، 2) الدفع خلال 5 ثوانٍ، 3) متوسط القوة خلال 5 ثوانٍ.",
         "steps": [
             {
@@ -3118,8 +3132,7 @@ ANNUAL_PROGRAM = {
  "phys": {6:["القياس والوحدات","الحركة والسرعة","القوى من حولنا","الشغل والطاقة","الضوء والرؤية","الصوت"],7:["المادة وحالاتها","الحرارة ودرجة الحرارة","الآلات البسيطة","الكهرباء الساكنة","المغناطيسية"],8:["الحركة المنتظمة","القوة والاحتكاك","الضغط والكثافة","الطاقة وتحولاتها","الدارات الكهربائية"],9:["الحركة بتسارع ثابت","قوانين نيوتن","الشغل والقدرة","الموجات","التيار الكهربائي"],10:["المتجهات","الحركة في بعدين","قوانين نيوتن وتطبيقاتها","الشغل والطاقة والقدرة","مقدمة في الزخم"],11:["الحركة الرأسية والمقذوفات","الحركة الدائرية","الجاذبية الكونية","الموائع","الاهتزاز والموجات"],12:["الزخم الخطي والدفع","الكهرباء الساكنة","التيار والدارات","المجال المغناطيسي","الحث الكهرومغناطيسي","مقدمة الفيزياء الحديثة"]},
  "chem": {6:["المادة وخواصها","المخاليط والمحاليل","التغيرات الفيزيائية والكيميائية","الماء ودورته"],7:["بناء الذرة","العناصر والمركبات","مقدمة الجدول الدوري","الأحماض والقواعد حولنا"],8:["التركيب الذري والإلكترونات","الروابط الكيميائية","التفاعلات الكيميائية","المحاليل والذائبية"],9:["المعادلات الكيميائية ووزنها","الأحماض والقواعد والأملاح","الأكسدة والاختزال","مقدمة الكيمياء العضوية"],10:["المول والحسابات الكيميائية","الجدول الدوري والدورية","أنواع الروابط","الغازات وقوانينها"],11:["الاتزان الكيميائي","سرعة التفاعل","الأحماض والقواعد وحساب pH","الكهروكيمياء"],12:["النموذج الذري والتركيب الإلكتروني","الكيمياء الحرارية","الكيمياء العضوية","البوليمرات","التحليل الكيميائي"]}
 }
-GRADE_LABELS={10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"}
-ALLOWED_GRADES={10,11,12}
+GRADE_LABELS={6:"السادس",7:"السابع",8:"الثامن",9:"التاسع",10:"العاشر",11:"الحادي عشر",12:"الثاني عشر"}
 for _k,_v in (("samed_view","home"),("student_profile",None),("dashboard_subject","phys")):
     if _k not in st.session_state: st.session_state[_k]=_v
 
@@ -3136,7 +3149,7 @@ def _render_onboarding():
     st.markdown("""<style id="onboarding-parent-v16">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f8fafc!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1220px!important;margin:0 auto!important;padding:0 12px 24px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f8fafc!important}</style>""",unsafe_allow_html=True)
     old=st.session_state.get("student_profile") or {}
     component=components.declare_component("student_samed_onboarding_v16",path=str(Path(__file__).with_name("onboarding_component")))
-    event=component(data={"profile":{"name":old.get("name",""),"grade":int(old.get("grade",12) or 12),"grades":old.get("grades") or [int(old.get("grade",12) or 12)],"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v23")
+    event=component(data={"profile":{"name":old.get("name",""),"grade":int(old.get("grade",12)),"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v16")
     if isinstance(event,dict):
         token=str(event.get("token","")).strip();action=str(event.get("action","")).strip()
         if token and st.session_state.get("_onboarding_v16_token")!=token:
@@ -3145,27 +3158,22 @@ def _render_onboarding():
                 st.session_state.pop("_onboarding_error",None);st.session_state["samed_view"]="home";st.rerun()
             if action=="save_profile" and isinstance(event.get("profile"),dict):
                 raw=event["profile"];name=str(raw.get("name","")).strip()
-                grades=[]
-                for g in (raw.get("grades") or [raw.get("grade",12)]):
-                    try: gi=int(g)
-                    except Exception: continue
-                    if gi in ALLOWED_GRADES: grades.append(gi)
-                grades=sorted(set(grades))
-                grade=max(grades) if grades else 12
+                try: grade=int(raw.get("grade",12))
+                except Exception: grade=12
+                grade=grade if grade in GRADE_LABELS else 12
                 subjects=[s for s in raw.get("subjects",[]) if s in {"phys","chem"}]
                 password=str(raw.get("password","")).strip();confirm=str(raw.get("confirm","")).strip()
                 existing_hash=old.get("passwordHash") or old.get("pinHash")
                 error=""
-                if len(name)<2: error="اكتب اسم مستخدم من حرفين على الأقل."
-                elif not grades: error="اختر صفًا واحدًا على الأقل: 10 أو 11 أو 12."
+                if len(name)<2: error="اكتب اسمًا من حرفين على الأقل."
                 elif not subjects: error="اختر مادة واحدة على الأقل."
                 elif (not existing_hash or password or confirm) and len(password)<6: error="يجب أن تتكون كلمة المرور من 6 أحرف على الأقل."
                 elif (not existing_hash or password or confirm) and password!=confirm: error="كلمة المرور وتأكيدها غير متطابقين."
                 if error:
                     st.session_state["_onboarding_error"]=error;st.rerun()
                 password_hash=hashlib.sha256(password.encode("utf-8")).hexdigest() if password else existing_hash
-                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
-                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_grade"]=grade;st.session_state["samed_view"]="dashboard";st.rerun()
+                profile={"id":old.get("id") or "local-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
+                st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
     st.stop()
 
 def _unit_download_bytes(filename):
@@ -3180,25 +3188,8 @@ def _render_dashboard():
 
     _profile_bridge(profile)
     allowed = profile.get("subjects", ["phys", "chem"])
-    grades=[]
-    for g in (profile.get("grades") or [profile.get("grade", 12)]):
-        try:
-            gi=int(g)
-        except Exception:
-            continue
-        if gi in ALLOWED_GRADES:
-            grades.append(gi)
-    grades=sorted(set(grades)) or [12]
-    try:
-        active_grade=int(profile.get("grade", grades[-1]))
-    except Exception:
-        active_grade=grades[-1]
-    if active_grade not in grades:
-        active_grade=grades[-1]
-    profile["grade"]=active_grade
-    profile["grades"]=grades
-    physics_live = "phys" in allowed and active_grade == 12
-    chemistry_live = "chem" in allowed and active_grade == 12
+    physics_live = "phys" in allowed and profile["grade"] == 12
+    chemistry_live = "chem" in allowed and profile["grade"] == 12
     physics_completed = st.session_state.get("completed_questions", set()) or set()
     physics_book_completed = st.session_state.get("physbook_completed_questions", set()) or set()
     physics_review_completed = st.session_state.get("physreview_completed_questions", set()) or set()
@@ -3228,7 +3219,7 @@ def _render_dashboard():
     safe_name = (str(profile.get("name", "الطالب"))
                  .replace("&", "&amp;").replace("<", "&lt;")
                  .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;"))
-    grade_label = GRADE_LABELS.get(int(profile["grade"]), str(profile["grade"]))
+    grade_label = GRADE_LABELS[profile["grade"]]
 
     from streamlit_dashboard_v13 import render_dashboard_v13
     stage_progress = {
@@ -3262,16 +3253,6 @@ def _render_dashboard():
         unit_progress=unit_progress,
         unit_bytes=_unit_download_bytes,
     )
-    if isinstance(action, str) and action.startswith("switch_grade_"):
-        try:
-            nxt=int(action.split("_")[-1])
-        except Exception:
-            nxt=None
-        if nxt in (profile.get("grades") or []):
-            profile["grade"]=nxt
-            st.session_state["student_profile"]=profile
-            st.session_state["samed_grade"]=nxt
-            st.rerun()
     if action == "edit":
         st.session_state["samed_view"] = "onboarding"
         st.rerun()
@@ -3434,7 +3415,7 @@ HOME_UNITS = {
         8:  ["التركيب الذري والإلكترونات", "الروابط الكيميائية",
               "التفاعلات الكيميائية", "المحاليل والذائبية"],
         9:  ["المعادلات الكيميائية ووزنها", "الأحماض والقواعد والأملاح",
-              "الأكسدة والاختزال", "مقدمة الكيمياء العضوية"],
+              "الأكسدة والاختزال", "م��دمة الكيمياء العضوية"],
         10: ["المول والحسابات الكيميائية", "الجدول الدوري والدورية",
               "أنواع الروابط", "الغازات وقوانينها"],
         11: ["الاتزان الكيميائي", "سرعة التفاعل",
