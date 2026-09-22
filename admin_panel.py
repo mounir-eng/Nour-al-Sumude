@@ -1,253 +1,77 @@
-"""Admin dashboard for الطالب الصامد."""
+"""Professional admin dashboard for الطالب الصامد."""
 from __future__ import annotations
-
 import html
 from typing import Any
-
 import streamlit as st
+from student_cloud_sync import (delete_feedback,delete_message,last_sheets_error,list_feedback,list_messages,list_students,sheets_configured,spreadsheet_key,update_feedback_status,update_message_status)
 
-from student_cloud_sync import (
-    create_managed_spreadsheet,
-    delete_message,
-    last_created_url,
-    last_sheets_error,
-    last_upsert_name,
-    list_messages,
-    list_students,
-    sheets_configured,
-    spreadsheet_key,
-    update_message_status,
-)
+UI="samed-admin-ui-v8-feedback"
+def e(v:Any)->str:return html.escape(str(v or ""))
+def n(v:Any)->int:
+    try:return max(0,min(100,int(float(str(v).replace('%','') or 0))))
+    except:return 0
 
-ADMIN_UI = "samed-admin-ui-v7"
+def css():
+ st.markdown(f'''<style>@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&display=swap');html,body,.stApp{{font-family:Cairo,'Noto Sans Arabic',Tahoma,sans-serif!important;direction:rtl;text-align:right}}.stApp{{background:#f3f6f5}}[data-testid="stHeader"],[data-testid="stToolbar"],[data-testid="stSidebar"]{{display:none!important}}.block-container{{max-width:1180px!important;padding-top:1rem!important}}.{UI} .hero{{background:linear-gradient(135deg,#173f44,#245e65 58%,#2f7a72);color:#fff;border-radius:24px;padding:24px;box-shadow:0 16px 38px rgba(23,63,68,.2);margin-bottom:14px}}.{UI} .hero small{{color:#f5c65a;font-weight:800}}.{UI} .hero h2{{margin:7px 0}}.{UI} .grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:15px}}.{UI} .kpi{{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.13);padding:13px;border-radius:15px}}.{UI} .kpi span{{display:block;font-size:12px;color:#dce9e6}}.{UI} .kpi b{{display:block;font-size:26px;color:#f5c65a}}.{UI} .nav{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}}.{UI} .navcard{{background:#fff;border:1px solid #d7e4e1;border-radius:18px;padding:15px;text-align:center;box-shadow:0 8px 20px rgba(23,63,68,.06)}}.{UI} .navcard i{{font-style:normal;font-size:28px;display:block}}.{UI} .navcard b{{display:block;margin-top:5px}}.{UI} table{{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:18px;overflow:hidden}}.{UI} th{{background:#173f44;color:#f5c65a;padding:11px;font-size:12px}}.{UI} td{{padding:11px;border-bottom:1px solid #e7eeec;font-size:13px}}.{UI} .bar{{height:7px;background:#e7efed;border-radius:99px;overflow:hidden;min-width:80px}}.{UI} .bar i{{display:block;height:100%;background:linear-gradient(90deg,#245e65,#f5c65a)}}.{UI} .item{{background:#fff;border:1px solid #d7e4e1;border-radius:17px;padding:15px;margin:9px 0;box-shadow:0 7px 18px rgba(23,63,68,.05)}}.{UI} .tags span{{display:inline-block;background:#eef7f4;color:#245e65;border-radius:999px;padding:3px 8px;margin:3px;font-size:11px}}@media(max-width:800px){{.{UI} .grid{{grid-template-columns:1fr 1fr}}.{UI} .nav{{grid-template-columns:1fr}}}}</style>''',unsafe_allow_html=True)
 
+def login():
+ if st.session_state.get('admin_ok'):return True
+ try:expected=str(st.secrets.get('admin',{}).get('password') or '')
+ except:expected=''
+ st.markdown(f'<div class="{UI}"><div class="hero"><small>لوحة الإدارة</small><h2>دخول المشرف</h2><p>متابعة الطلبة والرسائل وآراء تجربة التعلم.</p></div></div>',unsafe_allow_html=True)
+ if not expected:st.warning('أضف كلمة مرور الأدمن في Streamlit Cloud عبر Settings → Secrets.');return False
+ with st.form('admin_login_v8'):
+  pwd=st.text_input('كلمة المرور',type='password');ok=st.form_submit_button('دخول',use_container_width=True)
+ if ok and pwd==expected:st.session_state['admin_ok']=True;st.rerun()
+ if ok:st.error('كلمة المرور غير صحيحة.')
+ return False
 
-def _admin_password() -> str:
-    try:
-        return str(st.secrets.get("admin", {}).get("password") or "").strip()
-    except Exception:
-        return ""
+def feedback_page(status):
+ title='آراء الطلبة الجديدة' if status=='new' else 'آراء تمت معالجتها'
+ st.markdown(f'<div class="{UI}"><div class="hero"><small>تحسين المنصة</small><h2>{title}</h2><p>التجربة الأولى وتقييمات نهاية المراحل في مكان واحد.</p></div></div>',unsafe_allow_html=True)
+ if st.button('← العودة إلى الرئيسية',key='back_feedback_'+status):st.session_state.admin_view='home';st.rerun()
+ rows=list_feedback(status)
+ if not rows:st.info('لا توجد تقييمات هنا حاليًا.');return
+ for r in reversed(rows):
+  typ='التجربة الأولى' if r.get('feedback_type')=='first_use' else ('نهاية مرحلة · '+str(r.get('stage_title') or ''))
+  stars=('★'*int(float(r.get('stars') or 0))) if str(r.get('stars') or '').replace('.','',1).isdigit() else ''
+  tags=''.join(f'<span>{e(x)}</span>' for x in [r.get('rating'),r.get('difficulty'),stars,r.get('confidence')] if x)
+  details=' · '.join(str(r.get(x) or '') for x in ['likes','issues','improvements','lesson'] if r.get(x))
+  st.markdown(f'<div class="{UI}"><div class="item"><b>{e(r.get("student_name"))}</b> · {e(typ)}<br><small>{e(r.get("created_at"))} · الصف {e(r.get("grade"))}</small><div class="tags">{tags}</div><p>{e(details)}</p><p>{e(r.get("note"))}</p></div></div>',unsafe_allow_html=True)
+  c1,c2=st.columns(2);fid=str(r.get('id') or '')
+  if status=='new' and c1.button('تمت المعالجة',key='fb_done_'+fid):update_feedback_status(fid,'processed');st.rerun()
+  if c2.button('حذف',key='fb_del_'+status+'_'+fid):delete_feedback(fid);st.rerun()
 
+def messages_page(status):
+ title='رسائل التواصل' if status=='new' else 'الرسائل المعالجة'
+ st.markdown(f'<div class="{UI}"><div class="hero"><small>لوحة الإدارة</small><h2>{title}</h2></div></div>',unsafe_allow_html=True)
+ if st.button('← العودة إلى الرئيسية',key='back_msg_'+status):st.session_state.admin_view='home';st.rerun()
+ rows=list_messages(status)
+ if not rows:st.info('لا توجد رسائل هنا حاليًا.');return
+ for r in reversed(rows):
+  st.markdown(f'<div class="{UI}"><div class="item"><b>{e(r.get("name"))}</b> · {e(r.get("subject"))}<br><small>{e(r.get("created_at"))}</small><p>{e(r.get("message"))}</p></div></div>',unsafe_allow_html=True)
+  c1,c2=st.columns(2);mid=str(r.get('id') or '')
+  if status=='new' and c1.button('تمت المعالجة',key='msg_done_'+mid):update_message_status(mid,'processed');st.rerun()
+  if c2.button('حذف',key='msg_del_'+status+'_'+mid):delete_message(mid);st.rerun()
 
-def _css() -> None:
-    st.markdown(
-        f"""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&display=swap');
-html, body, [data-testid="stAppViewContainer"], .stApp {{
-  font-family: Cairo, 'Noto Sans Arabic', Tahoma, sans-serif !important;
-  direction: rtl; text-align: right;
-}}
-.stApp {{ background: #f3f6f5; }}
-[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stSidebar"] {{ display: none !important; }}
-.block-container {{ max-width: 1180px !important; padding-top: 1.1rem !important; }}
-.{ADMIN_UI} .hero {{
-  background: linear-gradient(135deg, #173f44 0%, #245e65 58%, #2f7a72 100%);
-  color: #fff; border-radius: 22px; padding: 22px 24px 18px;
-  box-shadow: 0 16px 36px rgba(23,63,68,.22); margin-bottom: 16px;
-}}
-.{ADMIN_UI} .hero b {{ color: #f5c65a; }}
-.{ADMIN_UI} .kicker {{ color: #f5c65a; font-size: 13px; letter-spacing: .4px; }}
-.{ADMIN_UI} .kpi-grid {{ display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:12px; margin: 14px 0 8px; }}
-.{ADMIN_UI} .kpi {{
-  background:#fff; border:1px solid #d7e4e1; border-radius:16px; padding:14px 16px;
-  box-shadow: 0 8px 18px rgba(23,63,68,.06);
-}}
-.{ADMIN_UI} .kpi span {{ display:block; color:#5d7370; font-size:13px; }}
-.{ADMIN_UI} .kpi strong {{ display:block; color:#173f44; font-size:28px; margin-top:4px; }}
-.{ADMIN_UI} .nav-wrap {{ display:flex; gap:12px; margin: 8px 0 16px; }}
-.{ADMIN_UI} .nav-card {{
-  flex:1; background:#fff; border:1px solid #d7e4e1; border-radius:18px; padding:16px 12px;
-  text-align:center; box-shadow: 0 8px 18px rgba(23,63,68,.05);
-}}
-.{ADMIN_UI} .nav-card .ico {{ font-size:28px; display:block; margin-bottom:6px; }}
-.{ADMIN_UI} .nav-card .lbl {{ color:#173f44; font-weight:800; }}
-.{ADMIN_UI} .admin-table {{ width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:18px; overflow:hidden; }}
-.{ADMIN_UI} .admin-table th {{
-  background:#173f44; color:#f5c65a; padding:12px 10px; font-size:13px; text-align:right;
-}}
-.{ADMIN_UI} .admin-table td {{
-  padding:12px 10px; border-bottom:1px solid #e6eeec; color:#173f44; vertical-align:middle;
-}}
-.{ADMIN_UI} .bar {{ height:8px; background:#e7efed; border-radius:99px; overflow:hidden; min-width:90px; }}
-.{ADMIN_UI} .bar i {{ display:block; height:100%; background:linear-gradient(90deg,#245e65,#f5c65a); }}
-.{ADMIN_UI} .chip {{
-  display:inline-block; background:#eef6f3; color:#245e65; border-radius:999px;
-  padding:2px 8px; margin:1px; font-size:12px; font-weight:700;
-}}
-.{ADMIN_UI} .msg {{
-  background:#fff; border:1px solid #d7e4e1; border-radius:16px; padding:14px 16px; margin-bottom:10px;
-}}
-@media (max-width: 900px) {{
-  .{ADMIN_UI} .kpi-grid {{ grid-template-columns: 1fr 1fr; }}
-  .{ADMIN_UI} .nav-wrap {{ flex-direction: column; }}
-}}
-</style>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-def _esc(value: Any) -> str:
-    return html.escape(str(value or ""))
-
-
-def _pct(raw: Any) -> int:
-    try:
-        n = float(str(raw).replace("%", "").strip() or 0)
-    except Exception:
-        n = 0
-    return max(0, min(100, int(round(n))))
-
-
-def _login() -> bool:
-    if st.session_state.get("admin_ok"):
-        return True
-    expected = _admin_password()
-    st.markdown(
-        f'<div class="{ADMIN_UI}"><div class="hero"><div class="kicker">لوحة الإدارة</div>'
-        "<h2>دخول المشرف</h2><p>أدخل كلمة مرور الأدمن لعرض إحصائيات الطلبة والرسائل.</p></div></div>",
-        unsafe_allow_html=True,
-    )
-    if not expected:
-        st.warning("أضف كلمة مرور الأدمن في Streamlit Cloud عبر Settings → Secrets ثم أعد تشغيل التطبيق.")
-        return False
-    with st.form("admin_login_v7"):
-        password = st.text_input("كلمة المرور", type="password")
-        ok = st.form_submit_button("دخول", use_container_width=True)
-    if ok and password == expected:
-        st.session_state["admin_ok"] = True
-        st.rerun()
-    if ok:
-        st.error("كلمة المرور غير صحيحة.")
-    return False
-
-
-def _sheets_help() -> None:
-    err = last_sheets_error()
-    if not sheets_configured():
-        st.warning("لم يُضبط Google Sheets بعد. أضف [gsheets] و [gcp_service_account] في Secrets.")
-    elif err:
-        st.error(err)
-        st.caption("بعد مشاركة الجدول كمحرر، اضغط إنشاء جدول جديد إن بقي غير ظاهر.")
-        share = st.text_input("إيميل للمشاركة بعد الإنشاء", value="techn47@gmail.com", key="admin_share_email")
-        if st.button("إنشاء جدول جديد وربطه", key="admin_create_sheet"):
-            try:
-                created = create_managed_spreadsheet(share)
-                st.success("تم إنشاء الجدول. انسخ المعرف إلى Secrets ثم أعد التشغيل.")
-                st.code(created.get("id") or "")
-                st.write(created.get("url") or last_created_url())
-            except Exception:
-                st.error(last_sheets_error() or "تعذر إنشاء الجدول. فعّل Google Drive API.")
-    last = last_upsert_name()
-    if last:
-        st.caption("آخر طالب وصل إلى الجدول: " + last)
-
-
-def _kpis(students: list[dict[str, Any]], new_msgs: int) -> str:
-    grades = {str(s.get("grade") or "").strip() for s in students if str(s.get("grade") or "").strip()}
-    avg = 0
-    if students:
-        avg = round(sum(_pct(s.get("progress")) for s in students) / len(students))
-    return (
-        f'<div class="kpi-grid">'
-        f'<div class="kpi"><span>الطلبة المسجلون</span><strong>{len(students)}</strong></div>'
-        f'<div class="kpi"><span>الصفوف النشطة</span><strong>{len(grades)}</strong></div>'
-        f'<div class="kpi"><span>متوسط التقدم</span><strong>{avg}%</strong></div>'
-        f'<div class="kpi"><span>رسائل جديدة</span><strong>{new_msgs}</strong></div>'
-        f'</div>'
-    )
-
-
-def _students_table(students: list[dict[str, Any]]) -> str:
-    if not students:
-        return '<p style="color:#5d7370">لا يوجد طلبة في الجدول بعد. سجّل طالبًا جديدًا بعد رفع هذا التحديث.</p>'
-    rows = []
-    for s in students:
-        pct = _pct(s.get("progress"))
-        badges = "".join(f'<span class="chip">{_esc(b)}</span>' for b in str(s.get("badges") or "").replace("|", ",").split(",") if b.strip()) or "—"
-        rows.append(
-            "<tr>"
-            f'<td><b>{_esc(s.get("name"))}</b><br><small>{_esc(s.get("id"))}</small></td>'
-            f'<td>{_esc(s.get("grade"))}</td>'
-            f'<td>{_esc(s.get("subjects"))}</td>'
-            f'<td><div class="bar"><i style="width:{pct}%"></i></div> {pct}%</td>'
-            f'<td>{_esc(s.get("xp"))}</td>'
-            f'<td>{badges}</td>'
-            f'<td>{_esc(s.get("last_seen"))}</td>'
-            "</tr>"
-        )
-    return (
-        '<table class="admin-table"><thead><tr>'
-        "<th>الطالب</th><th>الصف</th><th>المواد</th><th>التقدم</th><th>XP</th><th>الأوسمة</th><th>آخر نشاط</th>"
-        "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>"
-    )
-
-
-def _messages_page(status: str) -> None:
-    title = "رسائل التواصل" if status == "new" else "الرسائل المعالجة"
-    st.markdown(
-        f'<div class="{ADMIN_UI}"><div class="hero"><div class="kicker">لوحة الإدارة</div>'
-        f"<h2>{title}</h2></div></div>",
-        unsafe_allow_html=True,
-    )
-    if st.button("رجوع إلى الرئيسية", key=f"admin_back_{status}"):
-        st.session_state["admin_view"] = "home"
-        st.rerun()
-    rows = list_messages(status)
-    if not rows:
-        st.info("لا توجد رسائل هنا حاليًا.")
-        return
-    for row in rows:
-        mid = str(row.get("id") or "")
-        st.markdown(
-            f'<div class="{ADMIN_UI}"><div class="msg"><b>{_esc(row.get("name"))}</b> · {_esc(row.get("subject"))}'
-            f'<br><small>{_esc(row.get("created_at"))} · {_esc(row.get("email"))}</small>'
-            f'<p>{_esc(row.get("message"))}</p></div></div>',
-            unsafe_allow_html=True,
-        )
-        cols = st.columns(2)
-        if status == "new":
-            if cols[0].button("تمت المعالجة", key=f"admin_done_{mid}"):
-                update_message_status(mid, "processed")
-                st.rerun()
-        if cols[1].button("حذف", key=f"admin_del_{status}_{mid}"):
-            delete_message(mid)
-            st.rerun()
-
-
-def render_admin_panel() -> None:
-    _css()
-    if not _login():
-        return
-    view = st.session_state.get("admin_view") or "home"
-    if view == "messages":
-        _messages_page("new")
-        return
-    if view == "processed":
-        _messages_page("processed")
-        return
-
-    students = list_students() if sheets_configured() else []
-    new_msgs = list_messages("new") if sheets_configured() else []
-    st.markdown(
-        f'<div class="{ADMIN_UI}">'
-        '<div class="hero"><div class="kicker">لوحة الإدارة · الطالب الصامد</div>'
-        "<h2>متابعة الطلبة والتقدم والأوسمة</h2>"
-        f'<p>الجدول المرتبط: <b>{_esc(spreadsheet_key() or "غير مضبوط")}</b></p>'
-        f"{_kpis(students, len(new_msgs))}</div>"
-        '<div class="nav-wrap">'
-        '<div class="nav-card"><span class="ico">✉️</span><span class="lbl">رسائل التواصل</span></div>'
-        '<div class="nav-card"><span class="ico">✅</span><span class="lbl">الرسائل المعالجة</span></div>'
-        "</div></div>",
-        unsafe_allow_html=True,
-    )
-    cols = st.columns(2)
-    if cols[0].button("فتح رسائل التواصل", key="admin_open_messages"):
-        st.session_state["admin_view"] = "messages"
-        st.rerun()
-    if cols[1].button("فتح الرسائل المعالجة", key="admin_open_processed"):
-        st.session_state["admin_view"] = "processed"
-        st.rerun()
-    _sheets_help()
-    st.markdown(f'<div class="{ADMIN_UI}">{_students_table(students)}</div>', unsafe_allow_html=True)
+def render_admin_panel():
+ css()
+ if not login():return
+ view=st.session_state.get('admin_view','home')
+ if view=='feedback':feedback_page('new');return
+ if view=='feedback_done':feedback_page('processed');return
+ if view=='messages':messages_page('new');return
+ students=list_students() if sheets_configured() else [];feedback=list_feedback('new') if sheets_configured() else [];messages=list_messages('new') if sheets_configured() else []
+ avg=round(sum(n(x.get('progress')) for x in students)/len(students)) if students else 0
+ st.markdown(f'<div class="{UI}"><div class="hero"><small>لوحة الإدارة · الطالب الصامد</small><h2>متابعة التعلم وتطوير تجربة الطلبة</h2><p>إحصائيات واضحة، تقدم الطلبة، ورسائل التغذية الراجعة.</p><div class="grid"><div class="kpi"><span>الطلبة</span><b>{len(students)}</b></div><div class="kpi"><span>متوسط التقدم</span><b>{avg}%</b></div><div class="kpi"><span>آراء جديدة</span><b>{len(feedback)}</b></div><div class="kpi"><span>رسائل جديدة</span><b>{len(messages)}</b></div></div></div><div class="nav"><div class="navcard"><i>💬</i><b>آراء الطلبة</b><small>تقييم التجربة والمراحل</small></div><div class="navcard"><i>✅</i><b>الآراء المعالجة</b><small>سجل التحسينات</small></div><div class="navcard"><i>✉️</i><b>رسائل التواصل</b><small>طلبات واستفسارات</small></div></div></div>',unsafe_allow_html=True)
+ a,b,c=st.columns(3)
+ if a.button('فتح آراء الطلبة',use_container_width=True):st.session_state.admin_view='feedback';st.rerun()
+ if b.button('فتح الآراء المعالجة',use_container_width=True):st.session_state.admin_view='feedback_done';st.rerun()
+ if c.button('فتح رسائل التواصل',use_container_width=True):st.session_state.admin_view='messages';st.rerun()
+ if not sheets_configured():st.warning('لم يُضبط Google Sheets بعد. أضف [gsheets] و[gcp_service_account] في Secrets.')
+ elif last_sheets_error():st.error(last_sheets_error())
+ rows=''
+ for s in students:
+  pct=n(s.get('progress'));rows+=f'<tr><td><b>{e(s.get("name"))}</b><br><small>{e(s.get("id"))}</small></td><td>{e(s.get("grade"))}</td><td>{e(s.get("subjects"))}</td><td><div class="bar"><i style="width:{pct}%"></i></div>{pct}%</td><td>{e(s.get("xp"))}</td><td>{e(s.get("last_seen"))}</td></tr>'
+ table='<p>لا توجد تسجيلات بعد.</p>' if not rows else '<table><thead><tr><th>الطالب</th><th>الصف</th><th>المواد</th><th>التقدم</th><th>XP</th><th>آخر نشاط</th></tr></thead><tbody>'+rows+'</tbody></table>'
+ st.markdown(f'<div class="{UI}">{table}</div>',unsafe_allow_html=True)

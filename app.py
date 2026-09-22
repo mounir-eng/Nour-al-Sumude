@@ -31,8 +31,7 @@ st.set_page_config(
 
 def _is_admin_request():
     try:
-        q = st.query_params
-        return str(q.get("admin", "")).strip() in {"1", "true", "yes"}
+        return str(st.query_params.get("admin", "")).strip().lower() in {"1", "true", "yes"}
     except Exception:
         return False
 
@@ -3143,6 +3142,47 @@ def _top_back(label="العودة"):
     if st.button("← "+label,key="local_back_"+st.session_state.get("samed_view","x")):
         st.session_state["samed_view"]="home";st.rerun()
 
+def _render_feedback(mode, profile, stage_id="", stage_title="", subject=""):
+    st.markdown("""<style id="feedback-parent-v1">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f5f8f7!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1250px!important;margin:0 auto!important;padding:0 8px 18px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f5f8f7!important}</style>""",unsafe_allow_html=True)
+    component=components.declare_component("student_samed_feedback_v1",path=str(Path(__file__).with_name("feedback_component")))
+    event=component(data={"mode":mode,"student_name":profile.get("name","الطالب"),"grade":profile.get("grade",""),"stage_id":stage_id,"stage_title":stage_title,"subject":subject},default=None,key="feedback_"+mode+"_"+(stage_id or "first"))
+    if isinstance(event,dict):
+        token=str(event.get("token","")).strip();action=str(event.get("action","")).strip()
+        if token and st.session_state.get("_feedback_event_token")!=token:
+            st.session_state["_feedback_event_token"]=token
+            if action=="submit_feedback":
+                raw=event.get("feedback") if isinstance(event.get("feedback"),dict) else {}
+                payload={
+                    "student_id":profile.get("id",""),"student_name":profile.get("name",""),"grade":profile.get("grade",""),
+                    "subject":subject,"feedback_type":"first_use" if mode=="first" else "stage_completion",
+                    "stage_id":stage_id,"stage_title":stage_title,"rating":raw.get("rating",""),
+                    "difficulty":raw.get("difficulty",""),"stars":raw.get("stars",""),"confidence":raw.get("confidence",""),
+                    "likes":raw.get("likes",[]),"issues":raw.get("issues",[]),"improvements":raw.get("improvements",[]),
+                    "lesson":raw.get("lesson",""),"note":raw.get("note","")
+                }
+                try:
+                    from student_cloud_sync import save_feedback
+                    save_feedback(payload)
+                except Exception:
+                    pass
+                if mode=="first": profile["feedbackBonus"]=int(profile.get("feedbackBonus",0) or 0)+20
+            if action in {"submit_feedback","skip_feedback"}:
+                if mode=="first": profile["firstFeedbackDone"]=True
+                else:
+                    finished=list(profile.get("feedbackStages") or [])
+                    if stage_id and stage_id not in finished: finished.append(stage_id)
+                    profile["feedbackStages"]=finished
+                st.session_state["student_profile"]=profile
+                try:
+                    from student_cloud_sync import upsert_student
+                    upsert_student(profile)
+                except Exception:
+                    pass
+                _profile_bridge(profile)
+                st.session_state["samed_view"]="dashboard"
+                st.rerun()
+    st.stop()
+
 def _render_onboarding():
     st.markdown("""<style id="onboarding-parent-v16">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f8fafc!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1220px!important;margin:0 auto!important;padding:0 12px 24px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f8fafc!important}</style>""",unsafe_allow_html=True)
     old=st.session_state.get("student_profile") or {}
@@ -3178,7 +3218,7 @@ def _render_onboarding():
                     if gi in GRADE_LABELS and gi not in grades: grades.append(gi)
                 if not grades: grades=[grade]
                 grade=grades[0]
-                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local"}
+                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local","firstFeedbackDone":bool(old.get("firstFeedbackDone",False)),"feedbackStages":list(old.get("feedbackStages") or []),"feedbackBonus":int(old.get("feedbackBonus",0) or 0)}
                 try:
                     from student_cloud_sync import upsert_student
                     upsert_student(profile)
@@ -3186,21 +3226,17 @@ def _render_onboarding():
                     pass
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
             if action=="login_student" and isinstance(event.get("profile"),dict):
-                raw=event["profile"];name=str(raw.get("name","")).strip()
-                password=str(raw.get("password","")).strip()
-                try:
-                    from student_cloud_sync import find_student_by_name, upsert_student
-                    row=find_student_by_name(name)
-                except Exception:
-                    row=None
+                raw=event["profile"];name=str(raw.get("name","")).strip();password=str(raw.get("password","")).strip()
                 if not name or not password:
                     st.session_state["_onboarding_error"]="أدخل اسم المستخدم وكلمة المرور.";st.rerun()
-                profile={"id":(row or {}).get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":int((row or {}).get("grade") or 12) if str((row or {}).get("grade") or "12").split(",")[0].isdigit() else 12,"subjects":["phys","chem"],"passwordHash":hashlib.sha256(password.encode("utf-8")).hexdigest(),"mode":"local"}
                 try:
-                    from student_cloud_sync import upsert_student
-                    upsert_student(profile)
+                    from student_cloud_sync import find_student_by_name
+                    row=find_student_by_name(name) or {}
                 except Exception:
-                    pass
+                    row={}
+                grade_text=str(row.get("grade") or "12").split(",")[0].strip()
+                grade=int(grade_text) if grade_text.isdigit() and int(grade_text) in GRADE_LABELS else 12
+                profile={"id":row.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":[grade],"subjects":["phys","chem"],"passwordHash":hashlib.sha256(password.encode("utf-8")).hexdigest(),"mode":"local","firstFeedbackDone":False,"feedbackStages":[],"feedbackBonus":0}
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
     st.stop()
 
@@ -3265,12 +3301,26 @@ def _render_dashboard():
         ],
     }
     unit_progress = {"phys": physics_pct, "chem": chemistry_pct}
-    display_xp = max(xp, done * 100 + 50 if done else 0)
+    display_xp = max(xp, done * 100 + 50 if done else 0) + int(profile.get("feedbackBonus",0) or 0)
     try:
         from student_cloud_sync import upsert_student
-        upsert_student({**profile, "xp": display_xp, "progress": pct})
+        upsert_student({**profile,"xp":display_xp,"progress":pct})
     except Exception:
         pass
+
+    # First-use feedback appears only after the student has completed the first exercise.
+    if done >= 1 and not profile.get("firstFeedbackDone"):
+        _render_feedback("first",profile)
+
+    # Each completed stage is evaluated once. The flag is persisted inside the local student profile.
+    completed_feedback=set(profile.get("feedbackStages") or [])
+    stage_titles=["المدخل التأسيسي","مراجعة الوحدة","تمارين الكتاب","التدريب الإضافي"]
+    for subject_key,subject_name in (("phys","الفيزياء"),("chem","الكيمياء")):
+        for idx,value in enumerate(stage_progress.get(subject_key,[])):
+            stage_key=subject_key+"_"+str(idx)
+            if int(value or 0)>=100 and stage_key not in completed_feedback:
+                _render_feedback("stage",profile,stage_key,stage_titles[idx],subject_name)
+
     action = render_dashboard_v13(
         profile=profile,
         safe_name=safe_name,
