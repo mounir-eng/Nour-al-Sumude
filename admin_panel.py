@@ -61,6 +61,8 @@ def render_admin_panel():
  if view=='feedback':feedback_page('new');return
  if view=='feedback_done':feedback_page('processed');return
  if view=='messages':messages_page('new');return
+ from platform_supabase import render_admin_results
+ render_admin_results()
  students=list_students() if sheets_configured() else [];feedback=list_feedback('new') if sheets_configured() else [];messages=list_messages('new') if sheets_configured() else []
  avg=round(sum(n(x.get('progress')) for x in students)/len(students)) if students else 0
  st.markdown(f'<div class="{UI}"><div class="hero"><small>لوحة الإدارة · الطالب الصامد</small><h2>متابعة التعلم وتطوير تجربة الطلبة</h2><p>إحصائيات واضحة، تقدم الطلبة، ورسائل التغذية الراجعة.</p><div class="grid"><div class="kpi"><span>الطلبة</span><b>{len(students)}</b></div><div class="kpi"><span>متوسط التقدم</span><b>{avg}%</b></div><div class="kpi"><span>آراء جديدة</span><b>{len(feedback)}</b></div><div class="kpi"><span>رسائل جديدة</span><b>{len(messages)}</b></div></div></div><div class="nav"><div class="navcard"><i>💬</i><b>آراء الطلبة</b><small>تقييم التجربة والمراحل</small></div><div class="navcard"><i>✅</i><b>الآراء المعالجة</b><small>سجل التحسينات</small></div><div class="navcard"><i>✉️</i><b>رسائل التواصل</b><small>طلبات واستفسارات</small></div></div></div>',unsafe_allow_html=True)

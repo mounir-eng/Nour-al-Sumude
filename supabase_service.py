@@ -6,15 +6,18 @@ import streamlit as st
 
 def cfg():
     c=st.secrets["supabase"]
-    return str(c["url"]).rstrip("/"),str(c["anon_key"]),str(c["service_role_key"])
+    public=c.get("publishable_key",c.get("anon_key","")); secret=c.get("secret_key",c.get("service_role_key",""))
+    return str(c["url"]).rstrip("/"),str(public),str(secret)
 
 
 def _call(method,path,body=None,*,admin=False,token=None,query=""):
     base,anon,service=cfg(); key=service if admin else anon
     data=None if body is None else json.dumps(body,ensure_ascii=False).encode("utf-8")
     headers={"apikey":key,"Content-Type":"application/json"}
-    if admin: headers["Authorization"]="Bearer "+service
-    elif token: headers["Authorization"]="Bearer "+token
+    # Legacy service_role is a JWT and may be used as Bearer. New sb_secret keys
+    # are API keys, not JWTs, and must only be sent in the apikey header.
+    if admin and not service.startswith("sb_secret_"): headers["Authorization"]="Bearer "+service
+    elif (not admin) and token: headers["Authorization"]="Bearer "+token
     req=request.Request(base+path+query,data=data,headers=headers,method=method)
     try:
         with request.urlopen(req,timeout=20) as r:

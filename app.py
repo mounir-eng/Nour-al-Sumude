@@ -3187,7 +3187,7 @@ def _render_onboarding():
     st.markdown("""<style id="onboarding-parent-v16">[data-testid='stHeader'],[data-testid='stToolbar'],[data-testid='stDecoration'],footer,section[data-testid='stSidebar'],[data-testid='stSidebarCollapsedControl']{display:none!important}.stApp,[data-testid='stAppViewContainer']{background:#f8fafc!important;direction:rtl!important}section[data-testid='stMain'] .block-container,[data-testid='stMainBlockContainer']{width:100%!important;max-width:1220px!important;margin:0 auto!important;padding:0 12px 24px!important}[data-testid='stCustomComponentV1'],[data-testid='stCustomComponentV1'] iframe{display:block!important;width:100%!important;border:0!important;background:#f8fafc!important}</style>""",unsafe_allow_html=True)
     old=st.session_state.get("student_profile") or {}
     component=components.declare_component("student_samed_onboarding_v16",path=str(Path(__file__).with_name("onboarding_component")))
-    event=component(data={"profile":{"name":old.get("name",""),"grade":int(old.get("grade",12)),"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v16")
+    event=component(data={"profile":{"name":old.get("name",""),"grade":int(old.get("grade",12)),"grades":old.get("grades",[]),"email":old.get("email",""),"subjects":old.get("subjects",["phys","chem"])},"has_password":bool(old.get("mode")=="supabase" or old.get("passwordHash") or old.get("pinHash")),"error":st.session_state.get("_onboarding_error","")},default=None,key="student_samed_onboarding_v16")
     if isinstance(event,dict):
         token=str(event.get("token","")).strip();action=str(event.get("action","")).strip()
         if token and st.session_state.get("_onboarding_v16_token")!=token:
@@ -3201,11 +3201,11 @@ def _render_onboarding():
                 grade=grade if grade in GRADE_LABELS else 12
                 subjects=[s for s in raw.get("subjects",[]) if s in {"phys","chem"}]
                 password=str(raw.get("password","")).strip();confirm=str(raw.get("confirm","")).strip()
-                existing_hash=old.get("passwordHash") or old.get("pinHash")
+                existing_hash=old.get("mode")=="supabase" or old.get("passwordHash") or old.get("pinHash")
                 error=""
                 if len(name)<2: error="اكتب اسمًا من حرفين على الأقل."
                 elif not subjects: error="اختر مادة واحدة على الأقل."
-                elif (not existing_hash or password or confirm) and len(password)<6: error="يجب أن تتكون كلمة المرور من 6 أحرف على الأقل."
+                elif (not existing_hash or password or confirm) and len(password)<8: error="يجب أن تتكون كلمة المرور من 8 أحرف على الأقل."
                 elif (not existing_hash or password or confirm) and password!=confirm: error="كلمة المرور وتأكيدها غير متطابقين."
                 if error:
                     st.session_state["_onboarding_error"]=error;st.rerun()
@@ -3218,7 +3218,15 @@ def _render_onboarding():
                     if gi in GRADE_LABELS and gi not in grades: grades.append(gi)
                 if not grades: grades=[grade]
                 grade=grades[0]
-                profile={"id":old.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":grades,"subjects":subjects,"passwordHash":password_hash,"mode":"local","firstFeedbackDone":bool(old.get("firstFeedbackDone",False)),"feedbackStages":list(old.get("feedbackStages") or []),"feedbackBonus":int(old.get("feedbackBonus",0) or 0)}
+                try:
+                    from platform_supabase import configured, save_account
+                    if not configured():
+                        raise ValueError("Supabase غير مضبوط. أضف Project URL وPublishable key وSecret key إلى Streamlit Secrets.")
+                    profile=save_account(old,{"name":name,"email":raw.get("email",""),"grade":grade,"grades":grades,"subjects":subjects,"password":password})
+                except Exception as exc:
+                    st.session_state["_onboarding_error"]=str(exc) if isinstance(exc,ValueError) else "تعذر الاتصال بخدمة الحسابات. تحقق من الإعدادات ثم حاول مجددًا."
+                    st.rerun()
+                # Optional legacy mirror; passwords/hashes are never copied to Sheets.
                 try:
                     from student_cloud_sync import upsert_student
                     upsert_student(profile)
@@ -3226,17 +3234,15 @@ def _render_onboarding():
                     pass
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
             if action=="login_student" and isinstance(event.get("profile"),dict):
-                raw=event["profile"];name=str(raw.get("name","")).strip();password=str(raw.get("password","")).strip()
-                if not name or not password:
-                    st.session_state["_onboarding_error"]="أدخل اسم المستخدم وكلمة المرور.";st.rerun()
+                raw=event["profile"];password=str(raw.get("password",""))
                 try:
-                    from student_cloud_sync import find_student_by_name
-                    row=find_student_by_name(name) or {}
-                except Exception:
-                    row={}
-                grade_text=str(row.get("grade") or "12").split(",")[0].strip()
-                grade=int(grade_text) if grade_text.isdigit() and int(grade_text) in GRADE_LABELS else 12
-                profile={"id":row.get("id") or "stu-"+uuid.uuid4().hex[:12],"name":name,"grade":grade,"grades":[grade],"subjects":["phys","chem"],"passwordHash":hashlib.sha256(password.encode("utf-8")).hexdigest(),"mode":"local","firstFeedbackDone":False,"feedbackStages":[],"feedbackBonus":0}
+                    from platform_supabase import configured,authenticate
+                    if not configured():raise ValueError("أكمل إعداد Supabase في Secrets قبل تسجيل الدخول.")
+                    profile=authenticate(str(raw.get("email","")).strip().lower(),password)
+                    name=profile["name"]
+                except Exception as exc:
+                    st.session_state["_onboarding_error"]=str(exc) if isinstance(exc,ValueError) else "تعذر الاتصال بخدمة الدخول. حاول مجددًا."
+                    st.rerun()
                 st.session_state.pop("_onboarding_error",None);st.session_state["student_profile"]=profile;st.session_state["student_name"]=name;st.session_state["samed_view"]="dashboard";st.rerun()
     st.stop()
 
@@ -3307,6 +3313,17 @@ def _render_dashboard():
         upsert_student({**profile,"xp":display_xp,"progress":pct})
     except Exception:
         pass
+
+    if profile.get("mode")=="supabase":
+        try:
+            from platform_supabase import save_web_progress
+            save_web_progress(profile,pct,done,selected_total,stage_progress)
+        except Exception:
+            st.warning("تعذرت مزامنة تقدم الموقع الآن. أعد فتح لوحة الطالب لاحقًا للمحاولة.")
+        apk_url=str(st.secrets.get("app",{}).get("apk_download_url","")).strip()
+        if apk_url:
+            st.link_button("تحميل تطبيق Android للعمل دون إنترنت",apk_url)
+            st.caption("ادخل إلى التطبيق بالبريد وكلمة المرور نفسيهما؛ لا تستخدم حزمة PWA لمزامنة نتائج Android.")
 
     # First-use feedback appears only after the student has completed the first exercise.
     if done >= 1 and not profile.get("firstFeedbackDone"):
